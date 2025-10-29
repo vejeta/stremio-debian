@@ -100,17 +100,12 @@ jobs:
           # Show what we created
           ls -lh ../stremio_${VERSION}.orig.tar.* || true
 
-      - name: Build source package
+      - name: Build packages (source + binary)
         working-directory: stremio-client
         run: |
-          # Build source package
-          dpkg-buildpackage -S -us -uc -sa
-
-      - name: Build binary package
-        working-directory: stremio-client
-        run: |
-          # Build binary package
-          QT_DEFAULT_MAJOR_VERSION=5 dpkg-buildpackage -b -us -uc -j$(nproc)
+          # Build both source and binary packages in one go
+          # This ensures patches are applied once and build proceeds cleanly
+          QT_DEFAULT_MAJOR_VERSION=5 dpkg-buildpackage -us -uc -sa -j$(nproc)
 
       - name: Run lintian checks
         continue-on-error: true
