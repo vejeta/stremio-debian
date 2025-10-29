@@ -135,23 +135,21 @@ jobs:
           git config --global user.name "$DEBFULLNAME"
           git config --global --add safe.directory '*'
 
-      - name: Build source package
+      - name: Build binary package (stremio-server is architecture: all)
         working-directory: stremio-server
         run: |
+          # Get version from changelog
           if [ -f debian/changelog ]; then
             VERSION=$(dpkg-parsechangelog -S Version)
             echo "VERSION=$VERSION" >> $GITHUB_ENV
+            echo "Building stremio-server version: $VERSION"
           else
             echo "Error: debian/changelog not found"
             exit 1
           fi
 
-          dpkg-buildpackage -S -us -uc -sa
-
-      - name: Build binary package
-        working-directory: stremio-server
-        run: |
-          dpkg-buildpackage -b -us -uc -j$(nproc)
+          # Build binary-only package (no source package needed for simple packages)
+          dpkg-buildpackage -b -us -uc
 
       - name: Run lintian checks
         continue-on-error: true
