@@ -58,54 +58,12 @@ jobs:
           git config --global user.name "$DEBFULLNAME"
           git config --global --add safe.directory '*'
 
-      - name: Create upstream tarball
+      - name: Build binary packages
         working-directory: stremio-client
         run: |
-          # Get version from changelog (without debian revision)
-          if [ -f debian/changelog ]; then
-            VERSION=$(dpkg-parsechangelog -S Version | cut -d- -f1)
-            echo "VERSION=$VERSION" >> $GITHUB_ENV
-            echo "Creating upstream tarball for version: $VERSION"
-          else
-            echo "Error: debian/changelog not found"
-            exit 1
-          fi
-
-          # Try pristine-tar with both .tar.xz and .tar.gz formats
-          if git rev-parse --verify pristine-tar >/dev/null 2>&1; then
-            echo "Attempting to use pristine-tar..."
-            if pristine-tar checkout ../stremio_${VERSION}.orig.tar.xz 2>/dev/null; then
-              echo "✓ Generated tarball from pristine-tar (tar.xz)"
-            elif pristine-tar checkout ../stremio_${VERSION}.orig.tar.gz 2>/dev/null; then
-              echo "✓ Generated tarball from pristine-tar (tar.gz)"
-            fi
-          fi
-
-          # If pristine-tar didn't work, create from upstream tag
-          if [ ! -f ../stremio_${VERSION}.orig.tar.xz ] && [ ! -f ../stremio_${VERSION}.orig.tar.gz ]; then
-            echo "Generating tarball from upstream tag..."
-            UPSTREAM_TAG=$(git tag -l "upstream/*" | grep -E "${VERSION%+*}" | tail -1)
-
-            if [ -n "$UPSTREAM_TAG" ]; then
-              echo "Using upstream tag: $UPSTREAM_TAG"
-              git archive --format=tar --prefix=stremio-${VERSION%+*}/ $UPSTREAM_TAG | xz > ../stremio_${VERSION}.orig.tar.xz
-            else
-              echo "No upstream tag found, creating from current source..."
-              cd ..
-              tar --exclude-vcs --exclude='debian' --exclude='.pc' \
-                -cJf stremio_${VERSION}.orig.tar.xz stremio-client/
-            fi
-          fi
-
-          # Show what we created
-          ls -lh ../stremio_${VERSION}.orig.tar.* || true
-
-      - name: Build packages (source + binary)
-        working-directory: stremio-client
-        run: |
-          # Build both source and binary packages in one go
-          # This ensures patches are applied once and build proceeds cleanly
-          QT_DEFAULT_MAJOR_VERSION=5 dpkg-buildpackage -us -uc -sa -j$(nproc)
+          # Build binary packages only (matches local build workflow)
+          # Source packages remain available from canonical Salsa repository
+          QT_DEFAULT_MAJOR_VERSION=5 dpkg-buildpackage -us -uc -b
 
       - name: Run lintian checks
         continue-on-error: true
