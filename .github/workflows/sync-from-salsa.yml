@@ -139,6 +139,15 @@ jobs:
           # Add changes
           git add stremio-client stremio-server
 
+          # Check if there are actually changes to commit
+          if git diff --cached --quiet; then
+            echo "ℹ️ No changes to commit (submodules already up to date)"
+            echo "CHANGES_COMMITTED=false" >> $GITHUB_ENV
+            exit 0
+          fi
+
+          echo "CHANGES_COMMITTED=true" >> $GITHUB_ENV
+
           # Create commit message
           cat > commit-msg.txt << EOF
           chore: Sync from Salsa Debian repositories
@@ -168,7 +177,7 @@ jobs:
           echo "✓ Changes committed and pushed"
 
       - name: Trigger build workflow
-        if: steps.check_client.outputs.needs_update == 'true' || steps.check_server.outputs.needs_update == 'true'
+        if: env.CHANGES_COMMITTED == 'true'
         uses: peter-evans/repository-dispatch@v2
         with:
           token: ${{ secrets.PAT_TOKEN || github.token }}
