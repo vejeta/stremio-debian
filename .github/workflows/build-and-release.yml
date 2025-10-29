@@ -71,48 +71,45 @@ jobs:
             exit 1
           fi
 
-          # Try to use pristine-tar if available, otherwise generate from upstream tag
+          # Try pristine-tar with both .tar.xz and .tar.gz formats
           if git rev-parse --verify pristine-tar >/dev/null 2>&1; then
             echo "Attempting to use pristine-tar..."
-            pristine-tar checkout ../stremio_${VERSION}.orig.tar.gz 2>/dev/null || true
+            if pristine-tar checkout ../stremio_${VERSION}.orig.tar.xz 2>/dev/null; then
+              echo "✓ Generated tarball from pristine-tar (tar.xz)"
+            elif pristine-tar checkout ../stremio_${VERSION}.orig.tar.gz 2>/dev/null; then
+              echo "✓ Generated tarball from pristine-tar (tar.gz)"
+            fi
           fi
 
           # If pristine-tar didn't work, create from upstream tag
-          if [ ! -f ../stremio_${VERSION}.orig.tar.gz ]; then
+          if [ ! -f ../stremio_${VERSION}.orig.tar.xz ] && [ ! -f ../stremio_${VERSION}.orig.tar.gz ]; then
             echo "Generating tarball from upstream tag..."
             UPSTREAM_TAG=$(git tag -l "upstream/*" | grep -E "${VERSION%+*}" | tail -1)
 
             if [ -n "$UPSTREAM_TAG" ]; then
               echo "Using upstream tag: $UPSTREAM_TAG"
-              git archive --format=tar --prefix=stremio-${VERSION}/ $UPSTREAM_TAG | gzip > ../stremio_${VERSION}.orig.tar.gz
+              git archive --format=tar --prefix=stremio-${VERSION%+*}/ $UPSTREAM_TAG | xz > ../stremio_${VERSION}.orig.tar.xz
             else
               echo "No upstream tag found, creating from current source..."
               cd ..
               tar --exclude-vcs --exclude='debian' --exclude='.pc' \
-                -czf stremio_${VERSION}.orig.tar.gz stremio-client/
+                -cJf stremio_${VERSION}.orig.tar.xz stremio-client/
             fi
           fi
 
-          ls -lh ../stremio_${VERSION}.orig.tar.gz
+          # Show what we created
+          ls -lh ../stremio_${VERSION}.orig.tar.* || true
 
       - name: Build source package
         working-directory: stremio-client
         run: |
-          # Determine full version from debian/changelog
-          if [ -f debian/changelog ]; then
-            FULL_VERSION=$(dpkg-parsechangelog -S Version)
-            echo "Building source package version: $FULL_VERSION"
-          else
-            echo "Error: debian/changelog not found"
-            exit 1
-          fi
-
           # Build source package
           dpkg-buildpackage -S -us -uc -sa
 
       - name: Build binary package
         working-directory: stremio-client
         run: |
+          # Build binary package
           QT_DEFAULT_MAJOR_VERSION=5 dpkg-buildpackage -b -us -uc -j$(nproc)
 
       - name: Run lintian checks
