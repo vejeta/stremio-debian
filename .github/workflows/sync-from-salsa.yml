@@ -1,0 +1,199 @@
+name: Sync from Salsa Debian
+
+on:
+  repository_dispatch:
+    types: [salsa-push]  # Triggered by Salsa GitLab webhook
+  schedule:
+    # Run weekly on Sunday at 02:00 UTC as fallback
+    - cron: '0 2 * * 0'
+  workflow_dispatch:
+    inputs:
+      force_sync:
+        description: 'Force sync even if no changes detected'
+        required: false
+        default: 'false'
+        type: boolean
+
+env:
+  SALSA_STREMIO_REPO: "https://salsa.debian.org/mendezr/stremio.git"
+  SALSA_SERVER_REPO: "https://salsa.debian.org/mendezr/stremio-server.git"
+
+jobs:
+  check-and-sync:
+    name: Check for updates and sync
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout GitHub repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.PAT_TOKEN || github.token }}
+
+      - name: Configure git
+        run: |
+          git config --global user.name "GitHub Actions Bot"
+          git config --global user.email "actions@github.com"
+
+      - name: Setup sync directories
+        run: |
+          mkdir -p sync-temp/stremio-client
+          mkdir -p sync-temp/stremio-server
+
+      - name: Clone stremio-client from Salsa
+        run: |
+          echo "=== Cloning stremio-client from Salsa ==="
+          git clone --bare "$SALSA_STREMIO_REPO" sync-temp/stremio-client.git
+          cd sync-temp/stremio-client.git
+          LATEST_SALSA_COMMIT=$(git rev-parse HEAD)
+          echo "LATEST_SALSA_CLIENT_COMMIT=$LATEST_SALSA_COMMIT" >> $GITHUB_ENV
+          echo "Latest Salsa commit: $LATEST_SALSA_COMMIT"
+          cd ../..
+
+      - name: Clone stremio-server from Salsa
+        run: |
+          echo "=== Cloning stremio-server from Salsa ==="
+          git clone --bare "$SALSA_SERVER_REPO" sync-temp/stremio-server.git
+          cd sync-temp/stremio-server.git
+          LATEST_SALSA_COMMIT=$(git rev-parse HEAD)
+          echo "LATEST_SALSA_SERVER_COMMIT=$LATEST_SALSA_COMMIT" >> $GITHUB_ENV
+          echo "Latest Salsa commit: $LATEST_SALSA_COMMIT"
+          cd ../..
+
+      - name: Check if stremio-client needs update
+        id: check_client
+        run: |
+          # Check if stremio-client subdirectory exists
+          if [ -d "stremio-client/.git" ]; then
+            cd stremio-client
+            CURRENT_COMMIT=$(git rev-parse HEAD)
+            echo "CURRENT_CLIENT_COMMIT=$CURRENT_COMMIT" >> $GITHUB_ENV
+            echo "Current commit: $CURRENT_COMMIT"
+            echo "Latest Salsa commit: $LATEST_SALSA_CLIENT_COMMIT"
+
+            if [ "$CURRENT_COMMIT" != "$LATEST_SALSA_CLIENT_COMMIT" ] || [ "${{ inputs.force_sync }}" == "true" ]; then
+              echo "needs_update=true" >> $GITHUB_OUTPUT
+              echo "Client needs update"
+            else
+              echo "needs_update=false" >> $GITHUB_OUTPUT
+              echo "Client is up to date"
+            fi
+            cd ..
+          else
+            echo "needs_update=true" >> $GITHUB_OUTPUT
+            echo "Client directory doesn't exist, needs initial sync"
+          fi
+
+      - name: Check if stremio-server needs update
+        id: check_server
+        run: |
+          if [ -d "stremio-server/.git" ]; then
+            cd stremio-server
+            CURRENT_COMMIT=$(git rev-parse HEAD)
+            echo "CURRENT_SERVER_COMMIT=$CURRENT_COMMIT" >> $GITHUB_ENV
+            echo "Current commit: $CURRENT_COMMIT"
+            echo "Latest Salsa commit: $LATEST_SALSA_SERVER_COMMIT"
+
+            if [ "$CURRENT_COMMIT" != "$LATEST_SALSA_SERVER_COMMIT" ] || [ "${{ inputs.force_sync }}" == "true" ]; then
+              echo "needs_update=true" >> $GITHUB_OUTPUT
+              echo "Server needs update"
+            else
+              echo "needs_update=false" >> $GITHUB_OUTPUT
+              echo "Server is up to date"
+            fi
+            cd ..
+          else
+            echo "needs_update=true" >> $GITHUB_OUTPUT
+            echo "Server directory doesn't exist, needs initial sync"
+          fi
+
+      - name: Sync stremio-client
+        if: steps.check_client.outputs.needs_update == 'true'
+        run: |
+          echo "=== Syncing stremio-client ==="
+
+          # Remove existing directory if it exists
+          rm -rf stremio-client
+
+          # Clone fresh from Salsa
+          git clone "$SALSA_STREMIO_REPO" stremio-client
+
+          echo "✓ stremio-client synced successfully"
+
+      - name: Sync stremio-server
+        if: steps.check_server.outputs.needs_update == 'true'
+        run: |
+          echo "=== Syncing stremio-server ==="
+
+          # Remove existing directory if it exists
+          rm -rf stremio-server
+
+          # Clone fresh from Salsa
+          git clone "$SALSA_SERVER_REPO" stremio-server
+
+          echo "✓ stremio-server synced successfully"
+
+      - name: Commit and push changes
+        if: steps.check_client.outputs.needs_update == 'true' || steps.check_server.outputs.needs_update == 'true'
+        run: |
+          # Add changes
+          git add stremio-client stremio-server
+
+          # Create commit message
+          cat > commit-msg.txt << EOF
+          chore: Sync from Salsa Debian repositories
+
+          Automated sync from canonical Salsa repositories:
+          EOF
+
+          if [ "${{ steps.check_client.outputs.needs_update }}" == "true" ]; then
+            echo "- stremio-client: ${CURRENT_CLIENT_COMMIT:0:8} → ${LATEST_SALSA_CLIENT_COMMIT:0:8}" >> commit-msg.txt
+          fi
+
+          if [ "${{ steps.check_server.outputs.needs_update }}" == "true" ]; then
+            echo "- stremio-server: ${CURRENT_SERVER_COMMIT:0:8} → ${LATEST_SALSA_SERVER_COMMIT:0:8}" >> commit-msg.txt
+          fi
+
+          echo "" >> commit-msg.txt
+          echo "Upstream sources:" >> commit-msg.txt
+          echo "- https://salsa.debian.org/mendezr/stremio" >> commit-msg.txt
+          echo "- https://salsa.debian.org/mendezr/stremio-server" >> commit-msg.txt
+
+          # Commit
+          git commit -F commit-msg.txt
+
+          # Push
+          git push origin main
+
+          echo "✓ Changes committed and pushed"
+
+      - name: Trigger build workflow
+        if: steps.check_client.outputs.needs_update == 'true' || steps.check_server.outputs.needs_update == 'true'
+        uses: peter-evans/repository-dispatch@v2
+        with:
+          token: ${{ secrets.PAT_TOKEN || github.token }}
+          event-type: salsa-sync-completed
+          client-payload: |
+            {
+              "client_updated": "${{ steps.check_client.outputs.needs_update }}",
+              "server_updated": "${{ steps.check_server.outputs.needs_update }}",
+              "client_commit": "${{ env.LATEST_SALSA_CLIENT_COMMIT }}",
+              "server_commit": "${{ env.LATEST_SALSA_SERVER_COMMIT }}"
+            }
+
+      - name: Summary
+        run: |
+          echo "=== Sync Summary ==="
+          echo ""
+          if [ "${{ steps.check_client.outputs.needs_update }}" == "true" ] || [ "${{ steps.check_server.outputs.needs_update }}" == "true" ]; then
+            echo "✓ Updates found and synced"
+            echo ""
+            echo "Updated components:"
+            [ "${{ steps.check_client.outputs.needs_update }}" == "true" ] && echo "  - stremio-client"
+            [ "${{ steps.check_server.outputs.needs_update }}" == "true" ] && echo "  - stremio-server"
+            echo ""
+            echo "Build workflow will be triggered automatically"
+          else
+            echo "✓ All components up to date"
+            echo "No changes detected"
+          fi

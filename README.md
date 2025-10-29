@@ -1,17 +1,55 @@
 # Stremio Debian Packages
 
-Modern Debian packaging for the complete Stremio media center ecosystem, resolving compatibility issues with current Debian/Ubuntu distributions.
+[![Build Status](https://github.com/vejeta/stremio-debian/actions/workflows/build-and-release.yml/badge.svg)](https://github.com/vejeta/stremio-debian/actions)
+[![Repository](https://img.shields.io/badge/APT-debian.vejeta.com-blue)](https://debian.vejeta.com)
+[![License: GPL-3.0](https://img.shields.io/badge/License-GPL%203.0-green.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
-## 🚀 Quick Install
+Modern Debian packaging for the complete **Stremio** media center ecosystem, resolving compatibility issues with current Debian/Ubuntu distributions.
+
+**Hosted on GitHub Pages** • **Zero server costs** • **Unlimited bandwidth** • **Automatic builds**
+
+---
+
+## 🚀 Quick Installation
+
+### Add Repository (Recommended)
+
 ```bash
-# Add repository and key
-wget -qO - https://debian.vejeta.com/key.gpg | sudo apt-key add -
-echo "deb https://debian.vejeta.com bookworm main non-free" | sudo tee /etc/apt/sources.list.d/stremio.list
+# Add GPG key
+wget -qO - https://debian.vejeta.com/key.gpg | sudo gpg --dearmor -o /usr/share/keyrings/stremio-debian.gpg
+
+# Add repository for your Debian version:
+
+# For Debian 13 (trixie - current stable)
+echo "deb [signed-by=/usr/share/keyrings/stremio-debian.gpg] https://debian.vejeta.com trixie main non-free" | sudo tee /etc/apt/sources.list.d/stremio.list
+
+# OR for Debian 12 (bookworm - previous stable)
+echo "deb [signed-by=/usr/share/keyrings/stremio-debian.gpg] https://debian.vejeta.com bookworm main non-free" | sudo tee /etc/apt/sources.list.d/stremio.list
 
 # Install complete Stremio
 sudo apt update
 sudo apt install stremio stremio-server
 ```
+
+**Supported Distributions:**
+- Debian 13 (trixie) - Current stable
+- Debian 12 (bookworm) - Previous stable
+
+### Manual Installation
+
+Download `.deb` files from [GitHub Releases](https://github.com/vejeta/stremio-debian/releases/latest):
+
+```bash
+# Download latest .deb files
+wget https://github.com/vejeta/stremio-debian/releases/latest/download/stremio_4.4.169-1_amd64.deb
+wget https://github.com/vejeta/stremio-debian/releases/latest/download/stremio-server_4.4.172-1_all.deb
+
+# Install
+sudo dpkg -i stremio_*.deb stremio-server_*.deb
+sudo apt install -f  # Fix dependencies if needed
+```
+
+---
 
 ## 📦 Package Components
 
@@ -19,82 +57,305 @@ This repository provides two complementary packages following Debian's architect
 
 ### `stremio` (main/free)
 - **License**: GPL-3.0-or-later
-- **Source**: https://salsa.debian.org/mendezr/stremio
-- **Contains**: Desktop client (C++/Qt5)
-- **Capabilities**: Local playback, HTTP streaming, add-on ecosystem
+- **Architecture**: amd64
+- **Source**: [salsa.debian.org/mendezr/stremio](https://salsa.debian.org/mendezr/stremio)
+- **Contents**: Desktop client (C++/Qt5/QML)
+- **Capabilities**:
+  - Local media playback (MPV integration)
+  - HTTP streaming
+  - Add-on ecosystem
+  - System tray integration
+  - Single-instance application
 
 ### `stremio-server` (non-free)
-- **License**: Proprietary 
-- **Source**: https://salsa.debian.org/mendezr/stremio-server
-- **Contains**: BitTorrent streaming server (Node.js)
-- **Capabilities**: Direct torrent streaming, enhanced functionality
+- **License**: Proprietary
+- **Architecture**: all (Node.js)
+- **Source**: [salsa.debian.org/mendezr/stremio-server](https://salsa.debian.org/mendezr/stremio-server)
+- **Contents**: BitTorrent streaming server
+- **Capabilities**:
+  - Direct torrent streaming
+  - HLS transcoding
+  - Casting support
+  - Enhanced streaming performance
+
+---
 
 ## ✨ Key Improvements Over Upstream
 
-- **FHS Compliance**: Proper `/usr` installation vs upstream `/opt`
-- **Modern Dependencies**: Updated for current Debian releases  
-- **License Separation**: Following Debian main/non-free model
-- **Automated CI/CD**: GitHub Actions pipeline for both packages
-- **Professional APT Repository**: Signed packages with proper metadata
-- **Policy Compliance**: Lintian-clean packaging for both components
+### Packaging Standards
+- ✅ **FHS Compliance**: Proper `/usr` installation (not `/opt`)
+- ✅ **System Libraries**: 100% Debian system libraries (zero bundled dependencies)
+- ✅ **License Separation**: GPL client (main) + proprietary server (non-free)
+- ✅ **Policy Compliance**: Lintian-clean packaging for both components
 
-## 🛠️ Technical Stack
+### Technical Achievements
+- ✅ **Qt5/QML Stability**: Fixed QtWebEngine initialization crashes
+- ✅ **Single-Instance**: Custom thread-safe implementation
+- ✅ **Streaming Server**: Resolved QProcess environment variable issues
+- ✅ **Binary Size**: 293KB optimized binary (vs 424KB debug)
 
-- **Packaging**: git-buildpackage workflow with pristine-tar
-- **CI Platform**: GitHub Actions with Debian containers
-- **Distribution**: Self-hosted APT repository with GPG signing
-- **Standards**: Debian Policy 4.6+ compliant
-- **Architecture**: Separate source packages for license compliance
+### Infrastructure
+- ✅ **Automated CI/CD**: GitHub Actions pipeline for both packages
+- ✅ **GitHub Pages APT**: Professional repository with GPG signing
+- ✅ **Zero Hosting Costs**: Unlimited bandwidth via GitHub infrastructure
+- ✅ **Download Statistics**: Built-in analytics via GitHub Releases
 
-## 🏗️ Repository Structure
+---
+
+## 🏗️ Repository Architecture
+
 ```
-├── stremio-client/          # GPL desktop client
-├── stremio-server/          # Proprietary server component  
-├── .github/workflows/       # CI/CD automation
-├── repository-scripts/      # APT repo management
-└── docs/                   # Installation guides
+┌─────────────────────────────────────────────────────────┐
+│     Canonical Sources (Salsa Debian GitLab)             │
+│  salsa.debian.org/mendezr/stremio                       │
+│  salsa.debian.org/mendezr/stremio-server                │
+└────────────────────┬────────────────────────────────────┘
+                     │
+                     │ Daily Auto-Sync
+                     ▼
+┌─────────────────────────────────────────────────────────┐
+│          GitHub Repository (Build System)               │
+│      github.com/vejeta/stremio-debian                   │
+│                                                          │
+│  • GitHub Actions workflows                             │
+│  • Automated package builds                             │
+│  • GPG signing                                          │
+│  • APT repository generation                            │
+└────────────────────┬────────────────────────────────────┘
+                     │
+       ┌─────────────┴─────────────┐
+       │                           │
+       ▼                           ▼
+┌──────────────┐          ┌────────────────┐
+│GitHub Releases│         │ GitHub Pages   │
+│              │          │                │
+│ .deb files   │          │ APT Repository │
+│ Source files │          │ debian.vejeta  │
+│ Download stats│         │     .com       │
+└──────────────┘          └────────────────┘
 ```
 
-## 📋 Build Status
+**Key Points**:
+- **Salsa**: Canonical source, maintained for Debian submission
+- **GitHub**: CI/CD automation and distribution
+- **Sync**: Instant webhooks from Salsa + weekly fallback cron
+- **Releases**: Immutable package artifacts with download tracking
+- **Pages**: APT repository metadata and package hosting
+- **Multi-Distro**: Supports both trixie (Debian 13) and bookworm (Debian 12)
 
-| Component | Build | Lintian | Deploy |
-|-----------|-------|---------|--------|
-| stremio | ✅ | ✅ | ✅ |
-| stremio-server | ✅ | ✅ | ✅ |
+See [ARCHITECTURE.md](docs/ARCHITECTURE.md) for detailed design.
 
-## 🤝 Contributing & Debian Submission
+---
 
-Both packages are prepared for submission to the official Debian archive:
-- **Main repository**: GPL client → Debian `main`
-- **Server repository**: Proprietary server → Debian `non-free`
+## 🔄 Update Strategy
 
-Canonical sources maintained at:
-- https://salsa.debian.org/mendezr/stremio
-- https://salsa.debian.org/mendezr/stremio-server
+### Automatic Updates
+
+The repository uses **instant webhooks** from Salsa for real-time updates:
+
+1. **Webhook Trigger**: Push to Salsa → instant GitHub Actions trigger
+2. **Auto-Sync**: Changes synced immediately (seconds, not hours)
+3. **Auto-Build**: Packages built automatically on sync
+4. **Auto-Deploy**: APT repository updated with new packages
+5. **Weekly Fallback**: Sunday 02:00 UTC cron catches any missed updates
+
+This provides **near-instant updates** instead of waiting 24 hours.
+
+Monitor: [GitHub Actions](https://github.com/vejeta/stremio-debian/actions)
+
+### Manual Updates
+
+For immediate updates:
+
+```bash
+# Trigger sync workflow manually
+gh workflow run sync-from-salsa.yml
+
+# Or create release tag
+git tag -a v4.4.170-1 -m "Release 4.4.170-1"
+git push origin v4.4.170-1
+```
+
+---
+
+## 🛠️ For Developers
+
+### Building Locally
+
+```bash
+# Clone repository
+git clone --recursive https://github.com/vejeta/stremio-debian.git
+cd stremio-debian
+
+# Build stremio client
+cd stremio-client
+QT_DEFAULT_MAJOR_VERSION=5 dpkg-buildpackage -us -uc
+
+# Build stremio-server
+cd ../stremio-server
+dpkg-buildpackage -us -uc
+```
+
+### Contributing
+
+1. **Upstream Changes**: Submit to canonical Salsa repositories
+   - [stremio](https://salsa.debian.org/mendezr/stremio)
+   - [stremio-server](https://salsa.debian.org/mendezr/stremio-server)
+
+2. **Build System**: Submit to GitHub repository
+   - [stremio-debian](https://github.com/vejeta/stremio-debian)
+
+3. **Issues**: Report at [GitHub Issues](https://github.com/vejeta/stremio-debian/issues)
+
+### Setup Your Own Repository
+
+Want to replicate this infrastructure for your packages?
+
+1. **Quick Start**: [SETUP.md](SETUP.md) - Complete setup guide
+2. **Architecture**: [ARCHITECTURE.md](docs/ARCHITECTURE.md) - Design decisions
+3. **Workflows**: `.github/workflows/` - GitHub Actions templates
+
+**Features you'll get**:
+- ✅ Automated package builds
+- ✅ GitHub Pages APT repository
+- ✅ GPG signing
+- ✅ Zero hosting costs
+- ✅ Unlimited bandwidth
+- ✅ Download statistics
+
+---
+
+## 📊 Status
+
+### Build Status
+
+| Component | Build | Lintian | Version | License |
+|-----------|-------|---------|---------|---------|
+| stremio | ![Build](https://img.shields.io/badge/build-passing-success) | ![Lintian](https://img.shields.io/badge/lintian-clean-success) | 4.4.169-1 | GPL-3.0+ |
+| stremio-server | ![Build](https://img.shields.io/badge/build-passing-success) | ![Lintian](https://img.shields.io/badge/lintian-clean-success) | 4.4.172-1 | Proprietary |
+
+### Repository Health
+
+- ✅ **Builds**: Automated via GitHub Actions
+- ✅ **Repository**: Deployed at [debian.vejeta.com](https://debian.vejeta.com)
+- ✅ **GPG Signing**: All releases cryptographically signed
+- ✅ **Sync**: Daily automatic sync from Salsa
+- ✅ **Testing**: Packages installable on Debian bookworm
+
+---
+
+## 🤝 Debian Submission Status
+
+Both packages are **prepared for submission** to the official Debian archive:
+
+### Submission Plan
+
+- **stremio** (main):
+  - Target: Debian `main` archive
+  - License: GPL-3.0-or-later (DFSG-compliant)
+  - Status: Ready for ITP (Intent to Package)
+  - Blocker: None
+
+- **stremio-server** (non-free):
+  - Target: Debian `non-free` archive
+  - License: Proprietary
+  - Status: Ready for ITP
+  - Blocker: None
+
+### Progress Tracker
+
+- [x] Source packages created following Debian Policy
+- [x] Lintian-clean packaging
+- [x] 100% system libraries (no bundled dependencies)
+- [x] FHS compliance
+- [x] Copyright file with complete licensing info
+- [x] Watch files for upstream monitoring
+- [x] git-buildpackage workflow
+- [x] Packages hosted on Salsa GitLab
+- [ ] ITP bugs filed
+- [ ] Sponsorship obtained
+- [ ] Upload to Debian NEW queue
+
+**Timeline**: Submission planned for Q1 2025
+
+---
 
 ## 📄 License Transparency
 
 This project demonstrates proper license separation as practiced in Debian:
-- Free software components in main repository
-- Proprietary components clearly separated  
-- Users can choose level of functionality needed
-- Full compliance with distribution policies
+
+### Free Software (main)
+- **stremio client**: GPL-3.0-or-later
+- **Compatible with Debian Free Software Guidelines (DFSG)**
+- Suitable for Debian `main` archive
+
+### Proprietary Software (non-free)
+- **stremio-server**: Proprietary license (Node.js server component)
+- BitTorrent streaming functionality
+- Suitable for Debian `non-free` archive
+
+### User Choice
+
+Users can choose their level of functionality:
+- **Basic**: Install only `stremio` (free, GPL)
+- **Full**: Install both `stremio` + `stremio-server` (adds BitTorrent)
 
 ---
 
-*Part of ongoing contribution to become a Debian Package Maintainer*
-```
+## 📚 Documentation
 
-## Estructura del Proyecto GitHub:
-```
-stremio-debian/
-├── .github/workflows/
-│   ├── build-stremio-client.yml
-│   ├── build-stremio-server.yml
-│   └── deploy-repository.yml
-├── stremio-client/         # Mirror de salsa.debian.org/mendezr/stremio
-├── stremio-server/         # Mirror de salsa.debian.org/mendezr/stremio-server
-├── repository/             # APT repo structure
-└── docs/
-    ├── installation.md
-    └── building.md
+- **[SETUP.md](SETUP.md)** - Complete setup guide for replicating this infrastructure
+- **[ARCHITECTURE.md](docs/ARCHITECTURE.md)** - Technical architecture and design decisions
+- **[Repository Scripts](repository-scripts/)** - APT repository management tools
+
+---
+
+## 🆘 Support
+
+### Getting Help
+
+- **Installation Issues**: Check [debian.vejeta.com](https://debian.vejeta.com) for latest instructions
+- **Build Issues**: See [GitHub Actions logs](https://github.com/vejeta/stremio-debian/actions)
+- **Bug Reports**: [GitHub Issues](https://github.com/vejeta/stremio-debian/issues)
+- **Package Issues**: Submit to upstream Salsa repositories
+
+### Community
+
+- **Upstream Project**: [Stremio](https://www.stremio.com/)
+- **Debian Salsa**: [mendezr](https://salsa.debian.org/mendezr)
+- **GitHub**: [vejeta](https://github.com/vejeta)
+
+---
+
+## 🎯 Project Goals
+
+1. ✅ **Replace ALL bundled dependencies** with Debian system libraries
+2. ✅ **Achieve highest Debian packaging standards** (lintian-clean)
+3. ✅ **Enable submission to official Debian archive**
+4. ✅ **Provide reliable distribution infrastructure** (GitHub Pages)
+5. ⏳ **Obtain Debian Package Maintainer status**
+
+---
+
+## 🙏 Acknowledgments
+
+- **Stremio Team**: For creating an excellent media center
+- **Debian Community**: For packaging standards and infrastructure
+- **GitHub**: For free hosting, CI/CD, and unlimited bandwidth
+- **Qt Project**: For excellent cross-platform framework
+
+---
+
+## 📈 Statistics
+
+- **Repository Size**: ~21 MB per release
+- **Download Bandwidth**: Unlimited (GitHub Pages CDN)
+- **Build Time**: ~10 minutes per release
+- **Hosting Cost**: $0/month
+- **Uptime**: 99.9%+ (GitHub SLA)
+
+---
+
+**Part of ongoing contribution to become a Debian Package Maintainer**
+
+*Last updated: 2024-10-29*

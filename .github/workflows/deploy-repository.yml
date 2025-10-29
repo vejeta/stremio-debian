@@ -1,0 +1,290 @@
+name: Deploy APT Repository to GitHub Pages
+
+on:
+  repository_dispatch:
+    types: [packages-updated]
+  workflow_dispatch:
+    inputs:
+      force_rebuild:
+        description: 'Force rebuild of entire repository'
+        required: false
+        default: 'false'
+        type: boolean
+  push:
+    branches:
+      - main
+    paths:
+      - 'repository-scripts/**'
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build-repository:
+    name: Build APT Repository
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install repository tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y dpkg-dev gnupg tree
+
+      - name: Download latest release packages
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p packages/main packages/non-free
+
+          # Download latest release assets
+          gh release list --limit 1 --json tagName,name | jq -r '.[0].tagName' > latest_tag.txt
+          LATEST_TAG=$(cat latest_tag.txt)
+
+          if [ -n "$LATEST_TAG" ]; then
+            echo "Downloading packages from release: $LATEST_TAG"
+            gh release download "$LATEST_TAG" --pattern "*.deb" --dir packages/
+
+            # Organize packages by component
+            # stremio client is free (main), stremio-server is non-free
+            mv packages/stremio_*.deb packages/main/ 2>/dev/null || true
+            mv packages/stremio-server_*.deb packages/non-free/ 2>/dev/null || true
+
+            echo "Downloaded packages:"
+            ls -lah packages/*/
+          else
+            echo "No releases found, creating empty repository structure"
+          fi
+
+      - name: Import GPG key
+        run: |
+          echo "${{ secrets.GPG_PRIVATE_KEY }}" | gpg --batch --import
+          gpg --list-secret-keys --keyid-format=long
+
+      - name: Generate APT repositories for trixie (Debian 13)
+        run: |
+          chmod +x repository-scripts/*.sh
+          echo "=== Generating repository for Debian 13 (trixie - stable) ==="
+          ./repository-scripts/generate-apt-repo.sh packages/main debian-repo trixie main
+          ./repository-scripts/generate-apt-repo.sh packages/non-free debian-repo trixie non-free
+
+      - name: Generate APT repositories for bookworm (Debian 12)
+        run: |
+          echo "=== Generating repository for Debian 12 (bookworm - oldstable) ==="
+          ./repository-scripts/generate-apt-repo.sh packages/main debian-repo bookworm main
+          ./repository-scripts/generate-apt-repo.sh packages/non-free debian-repo bookworm non-free
+
+      - name: Update Release files for both distributions
+        run: |
+          cd debian-repo
+
+          # Function to update Release file for a distribution
+          update_release() {
+            local SUITE=$1
+            echo "=== Updating Release file for $SUITE ==="
+
+            cat > dists/$SUITE/Release << EOF
+          Origin: Stremio Debian Repository
+          Label: Stremio
+          Suite: $SUITE
+          Codename: $SUITE
+          Components: main non-free
+          Architectures: amd64
+          Description: Unofficial Debian packages for Stremio media center ($SUITE)
+          Date: $(date -R -u)
+          EOF
+
+            # Add checksums
+            echo "MD5Sum:" >> dists/$SUITE/Release
+            find dists/$SUITE -type f ! -name "Release*" | while read file; do
+                relative_path="${file#dists/$SUITE/}"
+                md5=$(md5sum "$file" | awk '{print $1}')
+                size=$(stat -c%s "$file")
+                printf " %s %8d %s\n" "$md5" "$size" "$relative_path" >> dists/$SUITE/Release
+            done
+
+            echo "SHA1:" >> dists/$SUITE/Release
+            find dists/$SUITE -type f ! -name "Release*" | while read file; do
+                relative_path="${file#dists/$SUITE/}"
+                sha1=$(sha1sum "$file" | awk '{print $1}')
+                size=$(stat -c%s "$file")
+                printf " %s %8d %s\n" "$sha1" "$size" "$relative_path" >> dists/$SUITE/Release
+            done
+
+            echo "SHA256:" >> dists/$SUITE/Release
+            find dists/$SUITE -type f ! -name "Release*" | while read file; do
+                relative_path="${file#dists/$SUITE/}"
+                sha256=$(sha256sum "$file" | awk '{print $1}')
+                size=$(stat -c%s "$file")
+                printf " %s %8d %s\n" "$sha256" "$size" "$relative_path" >> dists/$SUITE/Release
+            done
+          }
+
+          # Update both distributions
+          update_release trixie
+          update_release bookworm
+
+          cd ..
+
+      - name: Sign repositories for both distributions
+        run: |
+          echo "=== Signing trixie repository ==="
+          ./repository-scripts/sign-repository.sh debian-repo trixie "${{ secrets.GPG_KEY_ID }}"
+
+          echo "=== Signing bookworm repository ==="
+          ./repository-scripts/sign-repository.sh debian-repo bookworm "${{ secrets.GPG_KEY_ID }}"
+
+      - name: Export GPG public key
+        run: |
+          gpg --armor --export "${{ secrets.GPG_KEY_ID }}" > debian-repo/key.gpg
+          echo "GPG key exported to key.gpg"
+
+      - name: Create repository index page
+        run: |
+          cat > debian-repo/index.html << 'EOF'
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+              <meta charset="UTF-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <title>Stremio Debian Repository</title>
+              <style>
+                  body {
+                      font-family: system-ui, -apple-system, sans-serif;
+                      max-width: 800px;
+                      margin: 50px auto;
+                      padding: 20px;
+                      line-height: 1.6;
+                  }
+                  code {
+                      background: #f4f4f4;
+                      padding: 2px 6px;
+                      border-radius: 3px;
+                  }
+                  pre {
+                      background: #f4f4f4;
+                      padding: 15px;
+                      border-radius: 5px;
+                      overflow-x: auto;
+                  }
+                  .warning {
+                      background: #fff3cd;
+                      border-left: 4px solid #ffc107;
+                      padding: 15px;
+                      margin: 20px 0;
+                  }
+                  h1 { color: #333; }
+                  h2 { color: #555; margin-top: 30px; }
+              </style>
+          </head>
+          <body>
+              <h1>🎬 Stremio Debian Repository</h1>
+
+              <p>Unofficial Debian packages for <strong>Stremio</strong> media center, built from source and following Debian packaging standards.</p>
+
+              <div class="warning">
+                  <strong>⚠️ Unofficial Repository:</strong> These packages are not part of the official Debian archive. Use at your own discretion.
+              </div>
+
+              <h2>Quick Installation</h2>
+
+              <h3>1. Add repository GPG key</h3>
+              <pre>wget -qO - https://debian.vejeta.com/key.gpg | sudo gpg --dearmor -o /usr/share/keyrings/stremio-debian.gpg</pre>
+
+              <h3>2. Add repository to sources</h3>
+
+              <p><strong>For Debian 13 (trixie - stable):</strong></p>
+              <pre>echo "deb [signed-by=/usr/share/keyrings/stremio-debian.gpg] https://debian.vejeta.com trixie main non-free" | sudo tee /etc/apt/sources.list.d/stremio.list</pre>
+
+              <p><strong>For Debian 12 (bookworm - oldstable):</strong></p>
+              <pre>echo "deb [signed-by=/usr/share/keyrings/stremio-debian.gpg] https://debian.vejeta.com bookworm main non-free" | sudo tee /etc/apt/sources.list.d/stremio.list</pre>
+
+              <h3>3. Install Stremio</h3>
+              <pre>sudo apt update
+          sudo apt install stremio stremio-server</pre>
+
+              <h2>Supported Distributions</h2>
+              <ul>
+                  <li><strong>Debian 13 (trixie)</strong> - Current stable release</li>
+                  <li><strong>Debian 12 (bookworm)</strong> - Previous stable release</li>
+              </ul>
+
+              <h2>Available Packages</h2>
+
+              <ul>
+                  <li><strong>stremio</strong> (main/free): Desktop client with Qt5/QML interface</li>
+                  <li><strong>stremio-server</strong> (non-free): BitTorrent streaming server</li>
+              </ul>
+
+              <h2>Manual Download</h2>
+
+              <p>Download .deb files directly from <a href="https://github.com/vejeta/stremio-debian/releases">GitHub Releases</a></p>
+
+              <h2>Source Code</h2>
+
+              <ul>
+                  <li><a href="https://salsa.debian.org/mendezr/stremio">stremio (main)</a> - Salsa GitLab</li>
+                  <li><a href="https://salsa.debian.org/mendezr/stremio-server">stremio-server (non-free)</a> - Salsa GitLab</li>
+                  <li><a href="https://github.com/vejeta/stremio-debian">Build system</a> - GitHub</li>
+              </ul>
+
+              <h2>Support</h2>
+
+              <p>Report issues at <a href="https://github.com/vejeta/stremio-debian/issues">GitHub Issues</a></p>
+
+              <hr>
+
+              <p><small>Built with ❤️ using GitHub Actions • Hosted on GitHub Pages • Updated: BUILD_DATE</small></p>
+          </body>
+          </html>
+          EOF
+
+          # Update build date
+          sed -i "s/BUILD_DATE/$(date -u +"%Y-%m-%d %H:%M UTC")/" debian-repo/index.html
+
+      - name: Display repository structure
+        run: |
+          echo "=== Repository Structure ==="
+          tree -L 4 debian-repo || find debian-repo -type f | sort
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: debian-repo
+
+  deploy:
+    name: Deploy to GitHub Pages
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build-repository
+
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+      - name: Deployment summary
+        run: |
+          echo "✅ Repository deployed successfully!"
+          echo "URL: ${{ steps.deployment.outputs.page_url }}"
+          echo ""
+          echo "Custom domain: https://debian.vejeta.com"
+          echo ""
+          echo "Users can now add the repository with:"
+          echo "  wget -qO - https://debian.vejeta.com/key.gpg | sudo gpg --dearmor -o /usr/share/keyrings/stremio-debian.gpg"
+          echo "  echo \"deb [signed-by=/usr/share/keyrings/stremio-debian.gpg] https://debian.vejeta.com bookworm main non-free\" | sudo tee /etc/apt/sources.list.d/stremio.list"

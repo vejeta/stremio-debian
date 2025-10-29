@@ -1,0 +1,272 @@
+name: Build and Release Debian Packages
+
+on:
+  push:
+    tags:
+      - 'v*'
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      build_type:
+        description: 'Build type'
+        required: true
+        default: 'testing'
+        type: choice
+        options:
+          - testing
+          - release
+
+env:
+  DEBIAN_FRONTEND: noninteractive
+  DEBEMAIL: "mendezr@debian.org"
+  DEBFULLNAME: "Rodrigo Mendez"
+
+jobs:
+  build-stremio-client:
+    name: Build stremio (main/free)
+    runs-on: ubuntu-latest
+    container:
+      image: debian:bookworm
+      options: --privileged
+
+    steps:
+      - name: Install build dependencies
+        run: |
+          apt-get update
+          apt-get install -y \
+            git git-buildpackage pristine-tar \
+            debhelper-compat cmake \
+            qtbase5-dev qt5-qmake qt5-qmake-bin \
+            qtdeclarative5-dev qtwebengine5-dev qttools5-dev \
+            qml-module-qtwebchannel qml-module-qt-labs-platform \
+            qml-module-qtwebengine qml-module-qtquick-dialogs \
+            qml-module-qtquick-controls qml-module-qt-labs-settings \
+            qml-module-qt-labs-folderlistmodel \
+            libmpv-dev libssl-dev nodejs npm pkg-kde-tools \
+            devscripts lintian dpkg-dev fakeroot
+
+      - name: Checkout stremio-client source
+        uses: actions/checkout@v4
+        with:
+          repository: vejeta/stremio-debian
+          path: stremio-client
+          fetch-depth: 0
+          submodules: false
+
+      # Note: Assumes stremio-client/ subdirectory contains the actual package source
+      # Adjust path if structure differs
+
+      - name: Configure git for gbp
+        run: |
+          git config --global user.email "$DEBEMAIL"
+          git config --global user.name "$DEBFULLNAME"
+          git config --global --add safe.directory '*'
+
+      - name: Build source package
+        working-directory: stremio-client
+        run: |
+          # Determine version from git tags or debian/changelog
+          if [ -f debian/changelog ]; then
+            VERSION=$(dpkg-parsechangelog -S Version)
+            echo "VERSION=$VERSION" >> $GITHUB_ENV
+          else
+            echo "Error: debian/changelog not found"
+            exit 1
+          fi
+
+          # Build source package
+          dpkg-buildpackage -S -us -uc -sa
+
+      - name: Build binary package
+        working-directory: stremio-client
+        run: |
+          QT_DEFAULT_MAJOR_VERSION=5 dpkg-buildpackage -b -us -uc -j$(nproc)
+
+      - name: Run lintian checks
+        continue-on-error: true
+        run: |
+          lintian --info --display-info --pedantic \
+            stremio-client/../*.deb || true
+
+      - name: Collect build artifacts
+        run: |
+          mkdir -p artifacts/stremio-client
+          mv stremio-client/../*.deb artifacts/stremio-client/ || true
+          mv stremio-client/../*.dsc artifacts/stremio-client/ || true
+          mv stremio-client/../*.tar.* artifacts/stremio-client/ || true
+          mv stremio-client/../*.buildinfo artifacts/stremio-client/ || true
+          mv stremio-client/../*.changes artifacts/stremio-client/ || true
+          ls -lah artifacts/stremio-client/
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: stremio-client-packages
+          path: artifacts/stremio-client/*.deb
+          retention-days: 30
+
+      - name: Upload all artifacts for release
+        uses: actions/upload-artifact@v4
+        with:
+          name: stremio-client-all
+          path: artifacts/stremio-client/*
+          retention-days: 30
+
+  build-stremio-server:
+    name: Build stremio-server (non-free)
+    runs-on: ubuntu-latest
+    container:
+      image: debian:bookworm
+
+    steps:
+      - name: Install build dependencies
+        run: |
+          apt-get update
+          apt-get install -y \
+            git git-buildpackage pristine-tar \
+            debhelper-compat nodejs npm \
+            devscripts lintian dpkg-dev fakeroot
+
+      - name: Checkout stremio-server source
+        uses: actions/checkout@v4
+        with:
+          repository: vejeta/stremio-debian
+          path: stremio-server
+          fetch-depth: 0
+          submodules: false
+
+      - name: Configure git for gbp
+        run: |
+          git config --global user.email "$DEBEMAIL"
+          git config --global user.name "$DEBFULLNAME"
+          git config --global --add safe.directory '*'
+
+      - name: Build source package
+        working-directory: stremio-server
+        run: |
+          if [ -f debian/changelog ]; then
+            VERSION=$(dpkg-parsechangelog -S Version)
+            echo "VERSION=$VERSION" >> $GITHUB_ENV
+          else
+            echo "Error: debian/changelog not found"
+            exit 1
+          fi
+
+          dpkg-buildpackage -S -us -uc -sa
+
+      - name: Build binary package
+        working-directory: stremio-server
+        run: |
+          dpkg-buildpackage -b -us -uc -j$(nproc)
+
+      - name: Run lintian checks
+        continue-on-error: true
+        run: |
+          lintian --info --display-info --pedantic \
+            stremio-server/../*.deb || true
+
+      - name: Collect build artifacts
+        run: |
+          mkdir -p artifacts/stremio-server
+          mv stremio-server/../*.deb artifacts/stremio-server/ || true
+          mv stremio-server/../*.dsc artifacts/stremio-server/ || true
+          mv stremio-server/../*.tar.* artifacts/stremio-server/ || true
+          mv stremio-server/../*.buildinfo artifacts/stremio-server/ || true
+          mv stremio-server/../*.changes artifacts/stremio-server/ || true
+          ls -lah artifacts/stremio-server/
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: stremio-server-packages
+          path: artifacts/stremio-server/*.deb
+          retention-days: 30
+
+      - name: Upload all artifacts for release
+        uses: actions/upload-artifact@v4
+        with:
+          name: stremio-server-all
+          path: artifacts/stremio-server/*
+          retention-days: 30
+
+  create-release:
+    name: Create GitHub Release
+    needs: [build-stremio-client, build-stremio-server]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-artifacts
+
+      - name: Display structure of downloaded files
+        run: ls -R release-artifacts
+
+      - name: Create release notes
+        id: release_notes
+        run: |
+          cat > RELEASE_NOTES.md << 'EOF'
+          # Stremio Debian Packages ${GITHUB_REF_NAME}
+
+          ## Installation
+
+          ### Quick Install (APT Repository)
+          ```bash
+          wget -qO - https://debian.vejeta.com/key.gpg | sudo apt-key add -
+          echo "deb https://debian.vejeta.com bookworm main non-free" | sudo tee /etc/apt/sources.list.d/stremio.list
+          sudo apt update
+          sudo apt install stremio stremio-server
+          ```
+
+          ### Manual Install (.deb files)
+          Download the .deb files below and install with:
+          ```bash
+          sudo dpkg -i stremio_*.deb stremio-server_*.deb
+          sudo apt install -f
+          ```
+
+          ## Package Details
+
+          - **stremio** (main/free): Desktop client with local playback and HTTP streaming
+          - **stremio-server** (non-free): BitTorrent streaming server for enhanced functionality
+
+          ## Changes
+
+          See individual package changelogs in the source repositories:
+          - https://salsa.debian.org/mendezr/stremio
+          - https://salsa.debian.org/mendezr/stremio-server
+
+          ## Build Information
+
+          - Built on: $(date -u +"%Y-%m-%d %H:%M UTC")
+          - Workflow: ${GITHUB_RUN_ID}
+          - Commit: ${GITHUB_SHA:0:8}
+          EOF
+          cat RELEASE_NOTES.md
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: Release ${{ github.ref_name }}
+          body_path: RELEASE_NOTES.md
+          draft: false
+          prerelease: false
+          files: |
+            release-artifacts/stremio-client-packages/*.deb
+            release-artifacts/stremio-server-packages/*.deb
+            release-artifacts/stremio-client-all/*.dsc
+            release-artifacts/stremio-server-all/*.dsc
+            release-artifacts/stremio-client-all/*.tar.*
+            release-artifacts/stremio-server-all/*.tar.*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Trigger repository update
+        uses: peter-evans/repository-dispatch@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          event-type: packages-updated
+          client-payload: '{"version": "${{ github.ref_name }}"}'
