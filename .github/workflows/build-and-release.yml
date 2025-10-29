@@ -46,16 +46,11 @@ jobs:
             libmpv-dev libssl-dev nodejs npm pkg-kde-tools \
             devscripts lintian dpkg-dev fakeroot
 
-      - name: Checkout stremio-client source
+      - name: Checkout repository with submodules
         uses: actions/checkout@v4
         with:
-          repository: vejeta/stremio-debian
-          path: stremio-client
           fetch-depth: 0
-          submodules: false
-
-      # Note: Assumes stremio-client/ subdirectory contains the actual package source
-      # Adjust path if structure differs
+          submodules: recursive
 
       - name: Configure git for gbp
         run: |
@@ -128,13 +123,11 @@ jobs:
             debhelper-compat nodejs npm \
             devscripts lintian dpkg-dev fakeroot
 
-      - name: Checkout stremio-server source
+      - name: Checkout repository with submodules
         uses: actions/checkout@v4
         with:
-          repository: vejeta/stremio-debian
-          path: stremio-server
           fetch-depth: 0
-          submodules: false
+          submodules: recursive
 
       - name: Configure git for gbp
         run: |
