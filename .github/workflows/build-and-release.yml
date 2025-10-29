@@ -44,7 +44,7 @@ jobs:
             qml-module-qtquick-controls qml-module-qt-labs-settings \
             qml-module-qt-labs-folderlistmodel \
             libmpv-dev libssl-dev nodejs npm pkg-kde-tools \
-            devscripts lintian dpkg-dev fakeroot
+            devscripts lintian dpkg-dev fakeroot librsvg2-bin
 
       - name: Checkout repository with submodules
         uses: actions/checkout@v4
@@ -135,7 +135,7 @@ jobs:
           git config --global user.name "$DEBFULLNAME"
           git config --global --add safe.directory '*'
 
-      - name: Build binary package (stremio-server is architecture: all)
+      - name: Build binary package
         working-directory: stremio-server
         run: |
           # Get version from changelog
