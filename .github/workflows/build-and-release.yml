@@ -27,10 +27,20 @@ env:
 
 jobs:
   build-stremio-client:
-    name: Build stremio (main/free)
+    name: Build stremio (main/free) - ${{ matrix.distro }}
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        distro: [trixie, bookworm, sid]
+        include:
+          - distro: trixie
+            suite: stable
+          - distro: bookworm
+            suite: oldstable
+          - distro: sid
+            suite: unstable
     container:
-      image: debian:bookworm
+      image: debian:${{ matrix.distro }}
       options: --privileged
 
     steps:
@@ -118,33 +128,56 @@ jobs:
 
       - name: Collect build artifacts
         run: |
-          mkdir -p artifacts/stremio-client
-          mv stremio-client/../*.deb artifacts/stremio-client/ || true
-          mv stremio-client/../*.dsc artifacts/stremio-client/ || true
-          mv stremio-client/../*.tar.* artifacts/stremio-client/ || true
-          mv stremio-client/../*.buildinfo artifacts/stremio-client/ || true
-          mv stremio-client/../*.changes artifacts/stremio-client/ || true
-          ls -lah artifacts/stremio-client/
+          mkdir -p artifacts/stremio-client-${{ matrix.distro }}
+
+          # Rename .deb packages to include distribution name
+          for deb in stremio-client/../*.deb; do
+            if [ -f "$deb" ]; then
+              filename=$(basename "$deb")
+              # Insert distro name before .deb extension
+              # stremio_4.4.169+dfsg-1_amd64.deb -> stremio_4.4.169+dfsg-1_amd64-trixie.deb
+              newname="${filename%.deb}-${{ matrix.distro }}.deb"
+              mv "$deb" "artifacts/stremio-client-${{ matrix.distro }}/$newname"
+            fi
+          done
+
+          # Move other files without renaming
+          mv stremio-client/../*.dsc artifacts/stremio-client-${{ matrix.distro }}/ 2>/dev/null || true
+          mv stremio-client/../*.tar.* artifacts/stremio-client-${{ matrix.distro }}/ 2>/dev/null || true
+          mv stremio-client/../*.buildinfo artifacts/stremio-client-${{ matrix.distro }}/ 2>/dev/null || true
+          mv stremio-client/../*.changes artifacts/stremio-client-${{ matrix.distro }}/ 2>/dev/null || true
+
+          ls -lah artifacts/stremio-client-${{ matrix.distro }}/
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: stremio-client-packages
-          path: artifacts/stremio-client/*.deb
+          name: stremio-client-packages-${{ matrix.distro }}
+          path: artifacts/stremio-client-${{ matrix.distro }}/*.deb
           retention-days: 30
 
       - name: Upload all artifacts for release
         uses: actions/upload-artifact@v4
         with:
-          name: stremio-client-all
-          path: artifacts/stremio-client/*
+          name: stremio-client-all-${{ matrix.distro }}
+          path: artifacts/stremio-client-${{ matrix.distro }}/*
           retention-days: 30
 
   build-stremio-server:
-    name: Build stremio-server (non-free)
+    name: Build stremio-server (non-free) - ${{ matrix.distro }}
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        distro: [trixie, bookworm, sid]
+        include:
+          - distro: trixie
+            suite: stable
+          - distro: bookworm
+            suite: oldstable
+          - distro: sid
+            suite: unstable
     container:
-      image: debian:bookworm
+      image: debian:${{ matrix.distro }}
 
     steps:
       - name: Install build dependencies
@@ -191,26 +224,39 @@ jobs:
 
       - name: Collect build artifacts
         run: |
-          mkdir -p artifacts/stremio-server
-          mv stremio-server/../*.deb artifacts/stremio-server/ || true
-          mv stremio-server/../*.dsc artifacts/stremio-server/ || true
-          mv stremio-server/../*.tar.* artifacts/stremio-server/ || true
-          mv stremio-server/../*.buildinfo artifacts/stremio-server/ || true
-          mv stremio-server/../*.changes artifacts/stremio-server/ || true
-          ls -lah artifacts/stremio-server/
+          mkdir -p artifacts/stremio-server-${{ matrix.distro }}
+
+          # Rename .deb packages to include distribution name
+          for deb in stremio-server/../*.deb; do
+            if [ -f "$deb" ]; then
+              filename=$(basename "$deb")
+              # Insert distro name before .deb extension
+              # stremio-server_4.4.169-1_all.deb -> stremio-server_4.4.169-1_all-trixie.deb
+              newname="${filename%.deb}-${{ matrix.distro }}.deb"
+              mv "$deb" "artifacts/stremio-server-${{ matrix.distro }}/$newname"
+            fi
+          done
+
+          # Move other files without renaming
+          mv stremio-server/../*.dsc artifacts/stremio-server-${{ matrix.distro }}/ 2>/dev/null || true
+          mv stremio-server/../*.tar.* artifacts/stremio-server-${{ matrix.distro }}/ 2>/dev/null || true
+          mv stremio-server/../*.buildinfo artifacts/stremio-server-${{ matrix.distro }}/ 2>/dev/null || true
+          mv stremio-server/../*.changes artifacts/stremio-server-${{ matrix.distro }}/ 2>/dev/null || true
+
+          ls -lah artifacts/stremio-server-${{ matrix.distro }}/
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: stremio-server-packages
-          path: artifacts/stremio-server/*.deb
+          name: stremio-server-packages-${{ matrix.distro }}
+          path: artifacts/stremio-server-${{ matrix.distro }}/*.deb
           retention-days: 30
 
       - name: Upload all artifacts for release
         uses: actions/upload-artifact@v4
         with:
-          name: stremio-server-all
-          path: artifacts/stremio-server/*
+          name: stremio-server-all-${{ matrix.distro }}
+          path: artifacts/stremio-server-${{ matrix.distro }}/*
           retention-days: 30
 
   create-release:
@@ -236,20 +282,45 @@ jobs:
 
           ## Installation
 
-          ### Quick Install (APT Repository)
+          ### Quick Install (APT Repository) - Recommended
+
+          **For Debian Trixie (13 - current stable):**
           ```bash
-          wget -qO - https://debian.vejeta.com/key.gpg | sudo apt-key add -
-          echo "deb https://debian.vejeta.com bookworm main non-free" | sudo tee /etc/apt/sources.list.d/stremio.list
+          wget -qO - https://debian.vejeta.com/key.gpg | sudo gpg --dearmor -o /usr/share/keyrings/stremio-debian.gpg
+          echo "deb [signed-by=/usr/share/keyrings/stremio-debian.gpg] https://debian.vejeta.com trixie main non-free" | sudo tee /etc/apt/sources.list.d/stremio.list
+          sudo apt update
+          sudo apt install stremio stremio-server
+          ```
+
+          **For Debian Bookworm (12 - oldstable):**
+          ```bash
+          wget -qO - https://debian.vejeta.com/key.gpg | sudo gpg --dearmor -o /usr/share/keyrings/stremio-debian.gpg
+          echo "deb [signed-by=/usr/share/keyrings/stremio-debian.gpg] https://debian.vejeta.com bookworm main non-free" | sudo tee /etc/apt/sources.list.d/stremio.list
+          sudo apt update
+          sudo apt install stremio stremio-server
+          ```
+
+          **For Debian Sid (unstable) / Kali Rolling:**
+          ```bash
+          wget -qO - https://debian.vejeta.com/key.gpg | sudo gpg --dearmor -o /usr/share/keyrings/stremio-debian.gpg
+          echo "deb [signed-by=/usr/share/keyrings/stremio-debian.gpg] https://debian.vejeta.com sid main non-free" | sudo tee /etc/apt/sources.list.d/stremio.list
           sudo apt update
           sudo apt install stremio stremio-server
           ```
 
           ### Manual Install (.deb files)
-          Download the .deb files below and install with:
+
+          Download the appropriate .deb files for your distribution below and install with:
           ```bash
-          sudo dpkg -i stremio_*.deb stremio-server_*.deb
-          sudo apt install -f
+          sudo apt install ./stremio_*.deb ./stremio-server_*.deb
           ```
+
+          ## Distributions Supported
+
+          This release includes packages built for:
+          - **Debian Trixie (13)** - Current stable
+          - **Debian Bookworm (12)** - Previous stable
+          - **Debian Sid** - Unstable (compatible with Kali Rolling)
 
           ## Package Details
 
@@ -267,6 +338,7 @@ jobs:
           - Built on: $(date -u +"%Y-%m-%d %H:%M UTC")
           - Workflow: ${GITHUB_RUN_ID}
           - Commit: ${GITHUB_SHA:0:8}
+          - ITP: Bug #943703
           EOF
           cat RELEASE_NOTES.md
 
@@ -278,12 +350,12 @@ jobs:
           draft: false
           prerelease: false
           files: |
-            release-artifacts/stremio-client-packages/*.deb
-            release-artifacts/stremio-server-packages/*.deb
-            release-artifacts/stremio-client-all/*.dsc
-            release-artifacts/stremio-server-all/*.dsc
-            release-artifacts/stremio-client-all/*.tar.*
-            release-artifacts/stremio-server-all/*.tar.*
+            release-artifacts/stremio-client-packages-*/*.deb
+            release-artifacts/stremio-server-packages-*/*.deb
+            release-artifacts/stremio-client-all-*/*.dsc
+            release-artifacts/stremio-server-all-*/*.dsc
+            release-artifacts/stremio-client-all-*/*.tar.*
+            release-artifacts/stremio-server-all-*/*.tar.*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
