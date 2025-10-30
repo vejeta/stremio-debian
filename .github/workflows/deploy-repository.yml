@@ -233,6 +233,12 @@ jobs:
                       padding: 15px;
                       margin: 20px 0;
                   }
+                  .info {
+                      background: #d1ecf1;
+                      border-left: 4px solid #0c5460;
+                      padding: 15px;
+                      margin: 20px 0;
+                  }
                   h1 { color: #333; }
                   h2 { color: #555; margin-top: 30px; }
               </style>
@@ -244,6 +250,16 @@ jobs:
 
               <div class="warning">
                   <strong>⚠️ Unofficial Repository:</strong> These packages are not part of the official Debian archive. Use at your own discretion.
+              </div>
+
+              <div class="info">
+                  <strong>📦 Official Debian Submission Status:</strong><br>
+                  This package is currently being submitted to official Debian as
+                  <a href="https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=943703">ITP #943703</a>
+                  and is under Debian Developer review. This repository provides early access to
+                  official-quality packages while the Debian inclusion process is ongoing.
+                  The maintainer (<a href="mailto:vejeta@gmail.com">Juan Manuel Méndez Rey</a>)
+                  is the same for both this repository and the official Debian submission.
               </div>
 
               <h2>Quick Installation</h2>
