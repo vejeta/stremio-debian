@@ -45,7 +45,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          mkdir -p packages/main packages/non-free
+          # Create directory structure for each distribution
+          mkdir -p packages/{trixie,bookworm,sid}/{main,non-free}
 
           # Download latest release assets
           gh release list --limit 1 --json tagName,name | jq -r '.[0].tagName' > latest_tag.txt
@@ -53,15 +54,57 @@ jobs:
 
           if [ -n "$LATEST_TAG" ]; then
             echo "Downloading packages from release: $LATEST_TAG"
-            gh release download "$LATEST_TAG" --pattern "*.deb" --dir packages/
 
-            # Organize packages by component
-            # stremio client is free (main), stremio-server is non-free
-            mv packages/stremio_*.deb packages/main/ 2>/dev/null || true
-            mv packages/stremio-server_*.deb packages/non-free/ 2>/dev/null || true
+            # Download all .deb packages from the latest release
+            mkdir -p temp-downloads
+            gh release download "$LATEST_TAG" --pattern "*.deb" --dir temp-downloads/
 
-            echo "Downloaded packages:"
-            ls -lah packages/*/
+            # Organize packages by distribution and component
+            # Package naming format: stremio_4.4.169+dfsg-1_amd64-trixie.deb
+            echo "=== Organizing packages by distribution ==="
+
+            for deb in temp-downloads/*.deb; do
+              if [ ! -f "$deb" ]; then continue; fi
+
+              filename=$(basename "$deb")
+              echo "Processing: $filename"
+
+              # Extract distribution from filename (last part before .deb)
+              # stremio_4.4.169+dfsg-1_amd64-trixie.deb -> trixie
+              if [[ "$filename" =~ -([a-z]+)\.deb$ ]]; then
+                distro="${BASH_REMATCH[1]}"
+                echo "  Detected distribution: $distro"
+
+                # Remove distro suffix from filename for APT repository
+                # stremio_4.4.169+dfsg-1_amd64-trixie.deb -> stremio_4.4.169+dfsg-1_amd64.deb
+                clean_filename="${filename%-${distro}.deb}.deb"
+
+                # Determine component (main or non-free)
+                if [[ "$filename" =~ ^stremio-server ]]; then
+                  component="non-free"
+                else
+                  component="main"
+                fi
+
+                echo "  Component: $component"
+                echo "  Clean filename: $clean_filename"
+
+                # Copy to appropriate directory with clean filename
+                cp "$deb" "packages/$distro/$component/$clean_filename"
+              else
+                echo "  Warning: Could not extract distribution from filename"
+              fi
+            done
+
+            echo ""
+            echo "=== Organized packages ==="
+            for distro in trixie bookworm sid; do
+              echo "Distribution: $distro"
+              echo "  main:"
+              ls -lh packages/$distro/main/ 2>/dev/null || echo "    (empty)"
+              echo "  non-free:"
+              ls -lh packages/$distro/non-free/ 2>/dev/null || echo "    (empty)"
+            done
           else
             echo "No releases found, creating empty repository structure"
           fi
@@ -71,20 +114,23 @@ jobs:
           echo "${{ secrets.GPG_PRIVATE_KEY }}" | gpg --batch --import
           gpg --list-secret-keys --keyid-format=long
 
-      - name: Generate APT repositories for trixie (Debian 13)
+      - name: Generate APT repositories for all distributions
         run: |
           chmod +x repository-scripts/*.sh
+
           echo "=== Generating repository for Debian 13 (trixie - stable) ==="
-          ./repository-scripts/generate-apt-repo.sh packages/main debian-repo trixie main
-          ./repository-scripts/generate-apt-repo.sh packages/non-free debian-repo trixie non-free
+          ./repository-scripts/generate-apt-repo.sh packages/trixie/main debian-repo trixie main
+          ./repository-scripts/generate-apt-repo.sh packages/trixie/non-free debian-repo trixie non-free
 
-      - name: Generate APT repositories for bookworm (Debian 12)
-        run: |
           echo "=== Generating repository for Debian 12 (bookworm - oldstable) ==="
-          ./repository-scripts/generate-apt-repo.sh packages/main debian-repo bookworm main
-          ./repository-scripts/generate-apt-repo.sh packages/non-free debian-repo bookworm non-free
+          ./repository-scripts/generate-apt-repo.sh packages/bookworm/main debian-repo bookworm main
+          ./repository-scripts/generate-apt-repo.sh packages/bookworm/non-free debian-repo bookworm non-free
 
-      - name: Update Release files for both distributions
+          echo "=== Generating repository for Debian sid (unstable) ==="
+          ./repository-scripts/generate-apt-repo.sh packages/sid/main debian-repo sid main
+          ./repository-scripts/generate-apt-repo.sh packages/sid/non-free debian-repo sid non-free
+
+      - name: Update Release files for all distributions
         run: |
           cd debian-repo
 
@@ -130,19 +176,23 @@ jobs:
             done
           }
 
-          # Update both distributions
+          # Update all three distributions
           update_release trixie
           update_release bookworm
+          update_release sid
 
           cd ..
 
-      - name: Sign repositories for both distributions
+      - name: Sign repositories for all distributions
         run: |
           echo "=== Signing trixie repository ==="
           ./repository-scripts/sign-repository.sh debian-repo trixie "${{ secrets.GPG_KEY_ID }}"
 
           echo "=== Signing bookworm repository ==="
           ./repository-scripts/sign-repository.sh debian-repo bookworm "${{ secrets.GPG_KEY_ID }}"
+
+          echo "=== Signing sid repository ==="
+          ./repository-scripts/sign-repository.sh debian-repo sid "${{ secrets.GPG_KEY_ID }}"
 
       - name: Export GPG public key
         run: |
@@ -209,6 +259,9 @@ jobs:
               <p><strong>For Debian 12 (bookworm - oldstable):</strong></p>
               <pre>echo "deb [signed-by=/usr/share/keyrings/stremio-debian.gpg] https://debian.vejeta.com bookworm main non-free" | sudo tee /etc/apt/sources.list.d/stremio.list</pre>
 
+              <p><strong>For Debian sid (unstable) / Kali Rolling:</strong></p>
+              <pre>echo "deb [signed-by=/usr/share/keyrings/stremio-debian.gpg] https://debian.vejeta.com sid main non-free" | sudo tee /etc/apt/sources.list.d/stremio.list</pre>
+
               <h3>3. Install Stremio</h3>
               <pre>sudo apt update
           sudo apt install stremio stremio-server</pre>
@@ -217,6 +270,7 @@ jobs:
               <ul>
                   <li><strong>Debian 13 (trixie)</strong> - Current stable release</li>
                   <li><strong>Debian 12 (bookworm)</strong> - Previous stable release</li>
+                  <li><strong>Debian sid (unstable)</strong> - Rolling release (compatible with Kali Linux)</li>
               </ul>
 
               <h2>Available Packages</h2>
@@ -285,6 +339,19 @@ jobs:
           echo ""
           echo "Custom domain: https://debian.vejeta.com"
           echo ""
-          echo "Users can now add the repository with:"
+          echo "=== Supported Distributions ==="
+          echo "📦 Debian 13 (trixie) - current stable"
+          echo "📦 Debian 12 (bookworm) - previous stable"
+          echo "📦 Debian sid (unstable) - rolling release (Kali compatible)"
+          echo ""
+          echo "Users can add the repository with:"
+          echo ""
+          echo "For trixie:"
           echo "  wget -qO - https://debian.vejeta.com/key.gpg | sudo gpg --dearmor -o /usr/share/keyrings/stremio-debian.gpg"
+          echo "  echo \"deb [signed-by=/usr/share/keyrings/stremio-debian.gpg] https://debian.vejeta.com trixie main non-free\" | sudo tee /etc/apt/sources.list.d/stremio.list"
+          echo ""
+          echo "For bookworm:"
           echo "  echo \"deb [signed-by=/usr/share/keyrings/stremio-debian.gpg] https://debian.vejeta.com bookworm main non-free\" | sudo tee /etc/apt/sources.list.d/stremio.list"
+          echo ""
+          echo "For sid/Kali:"
+          echo "  echo \"deb [signed-by=/usr/share/keyrings/stremio-debian.gpg] https://debian.vejeta.com sid main non-free\" | sudo tee /etc/apt/sources.list.d/stremio.list"

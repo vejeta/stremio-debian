@@ -26,6 +26,9 @@ echo "deb [signed-by=/usr/share/keyrings/stremio-debian.gpg] https://debian.veje
 # OR for Debian 12 (bookworm - previous stable)
 echo "deb [signed-by=/usr/share/keyrings/stremio-debian.gpg] https://debian.vejeta.com bookworm main non-free" | sudo tee /etc/apt/sources.list.d/stremio.list
 
+# OR for Debian sid (unstable) / Kali Rolling
+echo "deb [signed-by=/usr/share/keyrings/stremio-debian.gpg] https://debian.vejeta.com sid main non-free" | sudo tee /etc/apt/sources.list.d/stremio.list
+
 # Install complete Stremio
 sudo apt update
 sudo apt install stremio stremio-server
@@ -34,6 +37,7 @@ sudo apt install stremio stremio-server
 **Supported Distributions:**
 - Debian 13 (trixie) - Current stable
 - Debian 12 (bookworm) - Previous stable
+- Debian sid (unstable) - Rolling release (compatible with Kali Linux)
 
 ### Manual Installation
 
@@ -96,9 +100,11 @@ This repository provides two complementary packages following Debian's architect
 
 ### Infrastructure
 - ✅ **Automated CI/CD**: GitHub Actions pipeline for both packages
+- ✅ **Multi-Distribution Builds**: Separate builds for trixie, bookworm, and sid
 - ✅ **GitHub Pages APT**: Professional repository with GPG signing
 - ✅ **Zero Hosting Costs**: Unlimited bandwidth via GitHub infrastructure
 - ✅ **Download Statistics**: Built-in analytics via GitHub Releases
+- ✅ **Dependency Compatibility**: Each distribution gets packages with correct dependencies
 
 ---
 
@@ -141,7 +147,45 @@ This repository provides two complementary packages following Debian's architect
 - **Sync**: Instant webhooks from Salsa + weekly fallback cron
 - **Releases**: Immutable package artifacts with download tracking
 - **Pages**: APT repository metadata and package hosting
-- **Multi-Distro**: Supports both trixie (Debian 13) and bookworm (Debian 12)
+- **Multi-Distro**: Supports trixie (Debian 13), bookworm (Debian 12), and sid (unstable/Kali)
+
+---
+
+## 🏗️ Multi-Distribution Build Strategy
+
+This repository implements **true multi-distribution support** by building packages separately for each Debian release:
+
+### Why Separate Builds?
+
+When building Debian packages, `dpkg-shlibdeps` analyzes linked libraries and generates dependencies based on the **build environment**. A package built on Debian 12 (bookworm) will have bookworm-specific dependencies that may not exist in Debian sid or Kali Rolling.
+
+**Problem Example**:
+```
+# Package built on bookworm requires:
+Depends: qtdeclarative-abi-5-15-8
+
+# But sid/Kali have:
+qtdeclarative-abi-5-15-10
+```
+
+### Solution: Matrix Builds
+
+GitHub Actions matrix strategy builds packages in separate containers:
+
+- **`debian:trixie`** → Packages with trixie dependencies → `dists/trixie/`
+- **`debian:bookworm`** → Packages with bookworm dependencies → `dists/bookworm/`
+- **`debian:sid`** → Packages with sid dependencies → `dists/sid/`
+
+Each distribution gets **native packages** with correct dependencies for that release.
+
+### Package Naming
+
+To avoid conflicts, `.deb` files are renamed with distribution suffixes during build:
+- `stremio_4.4.169+dfsg-1_amd64-trixie.deb`
+- `stremio_4.4.169+dfsg-1_amd64-bookworm.deb`
+- `stremio_4.4.169+dfsg-1_amd64-sid.deb`
+
+The APT repository deployment process removes these suffixes and places packages in the correct distribution directories.
 
 ---
 
