@@ -390,4 +390,4 @@ Users can choose their level of functionality:
 
 **Part of ongoing contribution to become a Debian Package Maintainer**
 
-*Last updated: 2024-10-29*
+*Last updated: 2025-10-29*
