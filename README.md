@@ -2,6 +2,12 @@
 
 [![Build Status](https://github.com/vejeta/stremio-debian/actions/workflows/build-and-release.yml/badge.svg)](https://github.com/vejeta/stremio-debian/actions)
 [![Repository](https://img.shields.io/badge/APT-debian.vejeta.com-blue)](https://debian.vejeta.com)
+![GitHub release](https://img.shields.io/github/v/release/vejeta/stremio-debian)
+![GitHub Downloads](https://img.shields.io/github/downloads/vejeta/stremio-debian/total)
+![Repository Status](https://img.shields.io/website?down_message=offline&label=APT%20repository&up_message=online&url=https%3A%2F%2Fdebian.vejeta.com)
+![GitHub issues](https://img.shields.io/github/issues/vejeta/stremio-debian)
+![Platform](https://img.shields.io/badge/platform-Debian%20%7C%20Ubuntu-blue)
+![License](https://img.shields.io/github/license/vejeta/stremio-debian)
 [![License: GPL-3.0](https://img.shields.io/badge/License-GPL%203.0-green.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
 Modern Debian packaging for the complete **Stremio** media center ecosystem, resolving compatibility issues with current Debian/Ubuntu distributions.
