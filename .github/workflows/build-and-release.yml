@@ -352,10 +352,8 @@ jobs:
           files: |
             release-artifacts/stremio-client-packages-*/*.deb
             release-artifacts/stremio-server-packages-*/*.deb
-            release-artifacts/stremio-client-all-*/*.dsc
-            release-artifacts/stremio-server-all-*/*.dsc
-            release-artifacts/stremio-client-all-*/*.tar.*
-            release-artifacts/stremio-server-all-*/*.tar.*
+            release-artifacts/stremio-client-all-trixie/*.dsc
+            release-artifacts/stremio-client-all-trixie/*.tar.*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
