@@ -45,8 +45,8 @@ Download `.deb` files from [GitHub Releases](https://github.com/vejeta/stremio-d
 
 ```bash
 # Download latest .deb files
-wget https://github.com/vejeta/stremio-debian/releases/latest/download/stremio_4.4.169+dfsg-1_amd64.deb
-wget https://github.com/vejeta/stremio-debian/releases/latest/download/stremio-server_4.4.169-1_all.deb
+wget https://github.com/vejeta/stremio-debian/releases/latest/download/stremio_4.4.169+dfsg-1_amd64-trixie.deb
+wget https://github.com/vejeta/stremio-debian/releases/latest/download/stremio-server_4.20.12-1_all-trixie.deb
 
 # Install
 sudo dpkg -i stremio_*.deb stremio-server_*.deb
@@ -62,7 +62,8 @@ This repository provides two complementary packages following Debian's architect
 ### `stremio` (main/free)
 - **License**: GPL-3.0-or-later
 - **Architecture**: amd64
-- **Source**: [salsa.debian.org/mendezr/stremio](https://salsa.debian.org/mendezr/stremio)
+- **Upstream**: [github.com/Stremio/stremio-shell](https://github.com/Stremio/stremio-shell)
+- **Packaging**: [salsa.debian.org/mendezr/stremio](https://salsa.debian.org/mendezr/stremio)
 - **Contents**: Desktop client (C++/Qt5/QML)
 - **Capabilities**:
   - Local media playback (MPV integration)
@@ -74,8 +75,10 @@ This repository provides two complementary packages following Debian's architect
 ### `stremio-server` (non-free)
 - **License**: Proprietary
 - **Architecture**: all (Node.js)
-- **Source**: [salsa.debian.org/mendezr/stremio-server](https://salsa.debian.org/mendezr/stremio-server)
-- **Contents**: BitTorrent streaming server
+- **Version**: 4.20.12-1 (independent versioning from client)
+- **Upstream**: [dl.strem.io/server](https://dl.strem.io/server/)
+- **Packaging**: [salsa.debian.org/mendezr/stremio-server](https://salsa.debian.org/mendezr/stremio-server)
+- **Contents**: BitTorrent streaming server (server.js v4.20.12)
 - **Capabilities**:
   - Direct torrent streaming
   - HLS transcoding
@@ -270,7 +273,7 @@ Want to replicate this infrastructure for your packages? Check the workflows in 
 | Component | Build | Lintian | Version | License |
 |-----------|-------|---------|---------|---------|
 | stremio | ![Build](https://img.shields.io/badge/build-passing-success) | ![Lintian](https://img.shields.io/badge/lintian-clean-success) | 4.4.169+dfsg-1 | GPL-3.0+ |
-| stremio-server | ![Build](https://img.shields.io/badge/build-passing-success) | ![Lintian](https://img.shields.io/badge/lintian-clean-success) | 4.4.169-1 | Proprietary |
+| stremio-server | ![Build](https://img.shields.io/badge/build-passing-success) | ![Lintian](https://img.shields.io/badge/lintian-clean-success) | 4.20.12-1 | Proprietary |
 
 ### Repository Health
 
@@ -390,4 +393,4 @@ Users can choose their level of functionality:
 
 **Part of ongoing contribution to become a Debian Package Maintainer**
 
-*Last updated: 2025-10-29*
+*Last updated: 2025-10-30*
