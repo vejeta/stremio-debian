@@ -19,8 +19,8 @@ on:
 
 env:
   DEBIAN_FRONTEND: noninteractive
-  DEBEMAIL: "mendezr@debian.org"
-  DEBFULLNAME: "Rodrigo Mendez"
+  DEBEMAIL: "vejeta@gmail.com"
+  DEBFULLNAME: "Juan Manuel Méndez Rey"
 
 jobs:
   build-stremio-client:

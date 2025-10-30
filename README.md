@@ -41,8 +41,8 @@ Download `.deb` files from [GitHub Releases](https://github.com/vejeta/stremio-d
 
 ```bash
 # Download latest .deb files
-wget https://github.com/vejeta/stremio-debian/releases/latest/download/stremio_4.4.169-1_amd64.deb
-wget https://github.com/vejeta/stremio-debian/releases/latest/download/stremio-server_4.4.172-1_all.deb
+wget https://github.com/vejeta/stremio-debian/releases/latest/download/stremio_4.4.169+dfsg-1_amd64.deb
+wget https://github.com/vejeta/stremio-debian/releases/latest/download/stremio-server_4.4.169-1_all.deb
 
 # Install
 sudo dpkg -i stremio_*.deb stremio-server_*.deb
@@ -143,8 +143,6 @@ This repository provides two complementary packages following Debian's architect
 - **Pages**: APT repository metadata and package hosting
 - **Multi-Distro**: Supports both trixie (Debian 13) and bookworm (Debian 12)
 
-See [ARCHITECTURE.md](docs/ARCHITECTURE.md) for detailed design.
-
 ---
 
 ## 🔄 Update Strategy
@@ -209,11 +207,7 @@ dpkg-buildpackage -us -uc
 
 ### Setup Your Own Repository
 
-Want to replicate this infrastructure for your packages?
-
-1. **Quick Start**: [SETUP.md](SETUP.md) - Complete setup guide
-2. **Architecture**: [ARCHITECTURE.md](docs/ARCHITECTURE.md) - Design decisions
-3. **Workflows**: `.github/workflows/` - GitHub Actions templates
+Want to replicate this infrastructure for your packages? Check the workflows in `.github/workflows/` as templates.
 
 **Features you'll get**:
 - ✅ Automated package builds
@@ -231,8 +225,8 @@ Want to replicate this infrastructure for your packages?
 
 | Component | Build | Lintian | Version | License |
 |-----------|-------|---------|---------|---------|
-| stremio | ![Build](https://img.shields.io/badge/build-passing-success) | ![Lintian](https://img.shields.io/badge/lintian-clean-success) | 4.4.169-1 | GPL-3.0+ |
-| stremio-server | ![Build](https://img.shields.io/badge/build-passing-success) | ![Lintian](https://img.shields.io/badge/lintian-clean-success) | 4.4.172-1 | Proprietary |
+| stremio | ![Build](https://img.shields.io/badge/build-passing-success) | ![Lintian](https://img.shields.io/badge/lintian-clean-success) | 4.4.169+dfsg-1 | GPL-3.0+ |
+| stremio-server | ![Build](https://img.shields.io/badge/build-passing-success) | ![Lintian](https://img.shields.io/badge/lintian-clean-success) | 4.4.169-1 | Proprietary |
 
 ### Repository Health
 
@@ -248,19 +242,21 @@ Want to replicate this infrastructure for your packages?
 
 Both packages are **prepared for submission** to the official Debian archive:
 
+**ITP (Intent To Package)**: [Bug #943703](https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=943703)
+
 ### Submission Plan
 
 - **stremio** (main):
   - Target: Debian `main` archive
   - License: GPL-3.0-or-later (DFSG-compliant)
-  - Status: Ready for ITP (Intent to Package)
-  - Blocker: None
+  - Status: ITP filed (#943703)
+  - Blocker: Awaiting sponsorship
 
 - **stremio-server** (non-free):
   - Target: Debian `non-free` archive
   - License: Proprietary
-  - Status: Ready for ITP
-  - Blocker: None
+  - Status: ITP filed (#943703)
+  - Blocker: Awaiting sponsorship
 
 ### Progress Tracker
 
@@ -272,7 +268,7 @@ Both packages are **prepared for submission** to the official Debian archive:
 - [x] Watch files for upstream monitoring
 - [x] git-buildpackage workflow
 - [x] Packages hosted on Salsa GitLab
-- [ ] ITP bugs filed
+- [x] ITP bug filed (#943703)
 - [ ] Sponsorship obtained
 - [ ] Upload to Debian NEW queue
 
@@ -299,14 +295,6 @@ This project demonstrates proper license separation as practiced in Debian:
 Users can choose their level of functionality:
 - **Basic**: Install only `stremio` (free, GPL)
 - **Full**: Install both `stremio` + `stremio-server` (adds BitTorrent)
-
----
-
-## 📚 Documentation
-
-- **[SETUP.md](SETUP.md)** - Complete setup guide for replicating this infrastructure
-- **[ARCHITECTURE.md](docs/ARCHITECTURE.md)** - Technical architecture and design decisions
-- **[Repository Scripts](repository-scripts/)** - APT repository management tools
 
 ---
 
