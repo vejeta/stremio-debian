@@ -46,7 +46,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           # Create directory structure for each distribution
-          mkdir -p packages/{trixie,bookworm,sid}/{main,non-free}
+          mkdir -p packages/{trixie,bookworm,sid,noble}/{main,non-free}
 
           # Download latest release assets
           gh release list --limit 1 --json tagName,name | jq -r '.[0].tagName' > latest_tag.txt
@@ -98,7 +98,7 @@ jobs:
 
             echo ""
             echo "=== Organized packages ==="
-            for distro in trixie bookworm sid; do
+            for distro in trixie bookworm sid noble; do
               echo "Distribution: $distro"
               echo "  main:"
               ls -lh packages/$distro/main/ 2>/dev/null || echo "    (empty)"
@@ -129,6 +129,10 @@ jobs:
           echo "=== Generating repository for Debian sid (unstable) ==="
           ./repository-scripts/generate-apt-repo.sh packages/sid/main debian-repo sid main
           ./repository-scripts/generate-apt-repo.sh packages/sid/non-free debian-repo sid non-free
+
+          echo "=== Generating repository for Ubuntu 24.04 (noble - LTS) - EXPERIMENTAL ==="
+          ./repository-scripts/generate-apt-repo.sh packages/noble/main debian-repo noble main
+          ./repository-scripts/generate-apt-repo.sh packages/noble/non-free debian-repo noble non-free
 
       - name: Update Release files for all distributions
         run: |
@@ -176,10 +180,11 @@ jobs:
             done
           }
 
-          # Update all three distributions
+          # Update all distributions
           update_release trixie
           update_release bookworm
           update_release sid
+          update_release noble
 
           cd ..
 
@@ -193,6 +198,9 @@ jobs:
 
           echo "=== Signing sid repository ==="
           ./repository-scripts/sign-repository.sh debian-repo sid "${{ secrets.GPG_KEY_ID }}"
+
+          echo "=== Signing noble repository ==="
+          ./repository-scripts/sign-repository.sh debian-repo noble "${{ secrets.GPG_KEY_ID }}"
 
       - name: Export GPG public key
         run: |
@@ -278,6 +286,13 @@ jobs:
               <p><strong>For Debian sid (unstable) / Kali Rolling:</strong></p>
               <pre>echo "deb [signed-by=/usr/share/keyrings/stremio-debian.gpg] https://debian.vejeta.com sid main non-free" | sudo tee /etc/apt/sources.list.d/stremio.list</pre>
 
+              <p><strong>For Ubuntu 24.04 LTS (Noble Numbat) - EXPERIMENTAL:</strong></p>
+              <pre>echo "deb [signed-by=/usr/share/keyrings/stremio-debian.gpg] https://debian.vejeta.com noble main non-free" | sudo tee /etc/apt/sources.list.d/stremio.list</pre>
+
+              <div class="warning">
+                  <strong>⚠️ Ubuntu Support is Experimental:</strong> Ubuntu packages are built automatically but have limited testing. Community feedback is welcome via GitHub Issues.
+              </div>
+
               <h3>3. Install Stremio</h3>
               <pre>sudo apt update
           sudo apt install stremio stremio-server</pre>
@@ -287,6 +302,7 @@ jobs:
                   <li><strong>Debian 13 (trixie)</strong> - Current stable release</li>
                   <li><strong>Debian 12 (bookworm)</strong> - Previous stable release</li>
                   <li><strong>Debian sid (unstable)</strong> - Rolling release (compatible with Kali Linux)</li>
+                  <li><strong>Ubuntu 24.04 LTS (noble)</strong> - EXPERIMENTAL (community testing)</li>
               </ul>
 
               <h2>Available Packages</h2>
@@ -359,6 +375,7 @@ jobs:
           echo "📦 Debian 13 (trixie) - current stable"
           echo "📦 Debian 12 (bookworm) - previous stable"
           echo "📦 Debian sid (unstable) - rolling release (Kali compatible)"
+          echo "📦 Ubuntu 24.04 LTS (noble) - EXPERIMENTAL"
           echo ""
           echo "Users can add the repository with:"
           echo ""
@@ -371,3 +388,6 @@ jobs:
           echo ""
           echo "For sid/Kali:"
           echo "  echo \"deb [signed-by=/usr/share/keyrings/stremio-debian.gpg] https://debian.vejeta.com sid main non-free\" | sudo tee /etc/apt/sources.list.d/stremio.list"
+          echo ""
+          echo "For Ubuntu 24.04 LTS (noble) - EXPERIMENTAL:"
+          echo "  echo \"deb [signed-by=/usr/share/keyrings/stremio-debian.gpg] https://debian.vejeta.com noble main non-free\" | sudo tee /etc/apt/sources.list.d/stremio.list"

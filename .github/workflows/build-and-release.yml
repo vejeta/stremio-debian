@@ -31,16 +31,22 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        distro: [trixie, bookworm, sid]
+        distro: [trixie, bookworm, sid, noble]
         include:
           - distro: trixie
             suite: stable
+            os_type: debian
           - distro: bookworm
             suite: oldstable
+            os_type: debian
           - distro: sid
             suite: unstable
+            os_type: debian
+          - distro: noble
+            suite: lts
+            os_type: ubuntu
     container:
-      image: debian:${{ matrix.distro }}
+      image: ${{ matrix.os_type }}:${{ matrix.distro }}
       options: --privileged
 
     steps:
@@ -126,6 +132,29 @@ jobs:
           lintian --info --display-info --pedantic \
             stremio-client/../*.deb || true
 
+      - name: Smoke test package (Ubuntu only)
+        if: matrix.os_type == 'ubuntu'
+        continue-on-error: true
+        run: |
+          echo "=== Ubuntu Package Smoke Test ==="
+          apt install -y ./stremio-client/../*.deb || true
+
+          # Test binary exists
+          which stremio && echo "✓ stremio binary found" || echo "✗ stremio binary not found"
+
+          # Test version
+          stremio --version 2>&1 || true
+
+          # Check dependencies
+          echo "=== Checking linked libraries ==="
+          ldd /usr/bin/stremio | grep -E "(libQt5|libmpv|libcrypto)" || true
+
+          # Test headless launch (will timeout, that's expected)
+          echo "=== Testing headless GUI initialization ==="
+          export QT_QPA_PLATFORM=offscreen
+          export QTWEBENGINE_DISABLE_SANDBOX=1
+          timeout 10s stremio 2>&1 || echo "✓ GUI initialization test completed"
+
       - name: Collect build artifacts
         run: |
           mkdir -p artifacts/stremio-client-${{ matrix.distro }}
@@ -168,16 +197,22 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        distro: [trixie, bookworm, sid]
+        distro: [trixie, bookworm, sid, noble]
         include:
           - distro: trixie
             suite: stable
+            os_type: debian
           - distro: bookworm
             suite: oldstable
+            os_type: debian
           - distro: sid
             suite: unstable
+            os_type: debian
+          - distro: noble
+            suite: lts
+            os_type: ubuntu
     container:
-      image: debian:${{ matrix.distro }}
+      image: ${{ matrix.os_type }}:${{ matrix.distro }}
 
     steps:
       - name: Install build dependencies
@@ -315,6 +350,14 @@ jobs:
           sudo apt install stremio stremio-server
           ```
 
+          **For Ubuntu 24.04 LTS (Noble Numbat) - EXPERIMENTAL:**
+          ```bash
+          wget -qO - https://debian.vejeta.com/key.gpg | sudo gpg --dearmor -o /usr/share/keyrings/stremio-debian.gpg
+          echo "deb [signed-by=/usr/share/keyrings/stremio-debian.gpg] https://debian.vejeta.com noble main non-free" | sudo tee /etc/apt/sources.list.d/stremio.list
+          sudo apt update
+          sudo apt install stremio stremio-server
+          ```
+
           ### Manual Install (.deb files)
 
           Download the appropriate .deb files for your distribution below and install with:
@@ -328,6 +371,7 @@ jobs:
           - **Debian Trixie (13)** - Current stable
           - **Debian Bookworm (12)** - Previous stable
           - **Debian Sid** - Unstable (compatible with Kali Rolling)
+          - **Ubuntu 24.04 LTS (Noble)** - EXPERIMENTAL (community testing)
 
           ## Package Details
 
