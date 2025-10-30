@@ -17,6 +17,9 @@ on:
           - testing
           - release
 
+permissions:
+  contents: write
+
 env:
   DEBIAN_FRONTEND: noninteractive
   DEBEMAIL: "vejeta@gmail.com"
