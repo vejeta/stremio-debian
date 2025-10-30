@@ -1,0 +1,195 @@
+name: Cleanup Old Releases
+
+on:
+  # Run after each release creation
+  workflow_run:
+    workflows: ["Build and Release Debian Packages"]
+    types:
+      - completed
+
+  # Also run monthly as safety check
+  schedule:
+    - cron: '0 4 1 * *'  # First day of month at 4 AM UTC
+
+  # Allow manual trigger
+  workflow_dispatch:
+    inputs:
+      max_releases:
+        description: 'Maximum number of releases to keep'
+        required: false
+        default: '40'
+        type: string
+      dry_run:
+        description: 'Dry run (list only, do not delete)'
+        required: false
+        default: 'false'
+        type: boolean
+
+permissions:
+  contents: write
+
+env:
+  MAX_RELEASES: 40  # Keep this many releases
+  TRIGGER_THRESHOLD: 47  # Only cleanup when we have this many or more
+
+jobs:
+  cleanup:
+    name: Cleanup old releases
+    runs-on: ubuntu-latest
+    # Only run if the build workflow succeeded (for workflow_run trigger)
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
+
+    steps:
+      - name: Check release count
+        id: count
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Count total releases
+          TOTAL_RELEASES=$(gh release list --repo ${{ github.repository }} --limit 100 | wc -l)
+          echo "TOTAL_RELEASES=$TOTAL_RELEASES" >> $GITHUB_ENV
+          echo "Total releases: $TOTAL_RELEASES"
+
+          # Determine max releases to keep (from input or default)
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            MAX_KEEP=${{ inputs.max_releases }}
+          else
+            MAX_KEEP=$MAX_RELEASES
+          fi
+          echo "MAX_KEEP=$MAX_KEEP" >> $GITHUB_ENV
+          echo "Will keep: $MAX_KEEP releases"
+
+          # Check if cleanup is needed
+          if [ $TOTAL_RELEASES -gt $TRIGGER_THRESHOLD ]; then
+            echo "needs_cleanup=true" >> $GITHUB_OUTPUT
+            echo "✅ Cleanup needed: $TOTAL_RELEASES releases (threshold: $TRIGGER_THRESHOLD)"
+
+            # Calculate how many to delete
+            TO_DELETE=$((TOTAL_RELEASES - MAX_KEEP))
+            echo "TO_DELETE=$TO_DELETE" >> $GITHUB_ENV
+            echo "Will delete: $TO_DELETE releases"
+          else
+            echo "needs_cleanup=false" >> $GITHUB_OUTPUT
+            echo "ℹ️ No cleanup needed: $TOTAL_RELEASES releases (threshold: $TRIGGER_THRESHOLD)"
+          fi
+
+      - name: List releases to delete
+        if: steps.count.outputs.needs_cleanup == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          echo "=== Releases that will be KEPT (latest $MAX_KEEP) ==="
+          gh release list --repo ${{ github.repository }} --limit $MAX_KEEP | \
+            awk '{printf "✅ Keep: %s (%s)\n", $3, $4}'
+
+          echo ""
+          echo "=== Releases that will be DELETED (oldest $TO_DELETE) ==="
+          gh release list --repo ${{ github.repository }} --limit $TOTAL_RELEASES | \
+            tail -n $TO_DELETE | \
+            awk '{printf "❌ Delete: %s (%s)\n", $3, $4}'
+
+          # Save releases to delete
+          gh release list --repo ${{ github.repository }} --limit $TOTAL_RELEASES | \
+            tail -n $TO_DELETE | \
+            cut -f3 > /tmp/releases_to_delete.txt
+
+          echo ""
+          echo "Total releases to delete: $(wc -l < /tmp/releases_to_delete.txt)"
+
+      - name: Delete old releases (dry run)
+        if: steps.count.outputs.needs_cleanup == 'true' && (github.event_name == 'workflow_dispatch' && inputs.dry_run == 'true')
+        run: |
+          echo "🔍 DRY RUN MODE - No releases will be deleted"
+          echo ""
+          echo "In a real run, these releases would be deleted:"
+          cat /tmp/releases_to_delete.txt
+          echo ""
+          echo "Total: $(wc -l < /tmp/releases_to_delete.txt) releases"
+
+      - name: Delete old releases (actual)
+        if: steps.count.outputs.needs_cleanup == 'true' && !(github.event_name == 'workflow_dispatch' && inputs.dry_run == 'true')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          echo "🗑️ Deleting old releases..."
+
+          # Counter for deleted releases
+          DELETED=0
+          FAILED=0
+
+          # Delete each release
+          while IFS= read -r tag; do
+            echo "Deleting release: $tag"
+            if gh release delete "$tag" --repo ${{ github.repository }} --yes; then
+              echo "  ✅ Deleted: $tag"
+              DELETED=$((DELETED + 1))
+            else
+              echo "  ❌ Failed to delete: $tag"
+              FAILED=$((FAILED + 1))
+            fi
+          done < /tmp/releases_to_delete.txt
+
+          echo ""
+          echo "=== Cleanup Summary ==="
+          echo "Successfully deleted: $DELETED releases"
+          echo "Failed to delete: $FAILED releases"
+          echo "Remaining releases: $((TOTAL_RELEASES - DELETED))"
+
+          # Save summary
+          echo "DELETED=$DELETED" >> $GITHUB_ENV
+          echo "FAILED=$FAILED" >> $GITHUB_ENV
+
+      - name: Verify final count
+        if: steps.count.outputs.needs_cleanup == 'true' && !(github.event_name == 'workflow_dispatch' && inputs.dry_run == 'true')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          echo "=== Verification ==="
+          FINAL_COUNT=$(gh release list --repo ${{ github.repository }} --limit 100 | wc -l)
+          echo "Final release count: $FINAL_COUNT"
+          echo "Expected count: ~$MAX_KEEP (may vary by a few if some deletions failed)"
+
+          if [ $FINAL_COUNT -le $((MAX_KEEP + 5)) ]; then
+            echo "✅ Cleanup successful - release count within acceptable range"
+          else
+            echo "⚠️ Warning: Final count ($FINAL_COUNT) higher than expected ($MAX_KEEP)"
+          fi
+
+      - name: Create cleanup summary
+        if: steps.count.outputs.needs_cleanup == 'true'
+        run: |
+          echo "## 🗑️ Release Cleanup Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ] && [ "${{ inputs.dry_run }}" == "true" ]; then
+            echo "**Mode**: Dry Run (no deletions performed)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "**Mode**: Actual cleanup" >> $GITHUB_STEP_SUMMARY
+            echo "- Deleted: $DELETED releases" >> $GITHUB_STEP_SUMMARY
+            echo "- Failed: $FAILED releases" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Statistics**:" >> $GITHUB_STEP_SUMMARY
+          echo "- Initial count: $TOTAL_RELEASES releases" >> $GITHUB_STEP_SUMMARY
+          echo "- Threshold: $TRIGGER_THRESHOLD releases" >> $GITHUB_STEP_SUMMARY
+          echo "- Target count: $MAX_KEEP releases" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ] && [ "${{ inputs.dry_run }}" == "true" ]; then
+            echo "- Would delete: $TO_DELETE releases" >> $GITHUB_STEP_SUMMARY
+          else
+            FINAL_COUNT=$(gh release list --repo ${{ github.repository }} --limit 100 2>/dev/null | wc -l || echo $TOTAL_RELEASES)
+            echo "- Final count: $FINAL_COUNT releases" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: No cleanup needed
+        if: steps.count.outputs.needs_cleanup == 'false'
+        run: |
+          echo "## ℹ️ No Cleanup Needed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Current releases**: $TOTAL_RELEASES" >> $GITHUB_STEP_SUMMARY
+          echo "**Cleanup threshold**: $TRIGGER_THRESHOLD releases" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Cleanup will trigger automatically when release count reaches $TRIGGER_THRESHOLD." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "To manually trigger cleanup, go to Actions → Cleanup Old Releases → Run workflow" >> $GITHUB_STEP_SUMMARY

@@ -277,7 +277,7 @@ jobs:
       - name: Create release notes
         id: release_notes
         run: |
-          cat > RELEASE_NOTES.md << 'EOF'
+          cat > RELEASE_NOTES.md << EOF
           # Stremio Debian Packages ${GITHUB_REF_NAME}
 
           ## Installation
