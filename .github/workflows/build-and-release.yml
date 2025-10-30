@@ -277,8 +277,15 @@ jobs:
       - name: Create release notes
         id: release_notes
         run: |
-          cat > RELEASE_NOTES.md << EOF
-          # Stremio Debian Packages ${GITHUB_REF_NAME}
+          # Capture variables before heredoc
+          RELEASE_TAG="${GITHUB_REF_NAME}"
+          BUILD_DATE="$(date -u +"%Y-%m-%d %H:%M UTC")"
+          WORKFLOW_ID="${GITHUB_RUN_ID}"
+          COMMIT_SHA="${GITHUB_SHA:0:8}"
+
+          # Use quoted heredoc to prevent command execution
+          cat > RELEASE_NOTES.md << 'ENDOFNOTES'
+          # Stremio Debian Packages VERSION_PLACEHOLDER
 
           ## Installation
 
@@ -335,11 +342,18 @@ jobs:
 
           ## Build Information
 
-          - Built on: $(date -u +"%Y-%m-%d %H:%M UTC")
-          - Workflow: ${GITHUB_RUN_ID}
-          - Commit: ${GITHUB_SHA:0:8}
+          - Built on: DATE_PLACEHOLDER
+          - Workflow: WORKFLOW_PLACEHOLDER
+          - Commit: COMMIT_PLACEHOLDER
           - ITP: Bug #943703
-          EOF
+          ENDOFNOTES
+
+          # Replace placeholders with actual values
+          sed -i "s/VERSION_PLACEHOLDER/$RELEASE_TAG/g" RELEASE_NOTES.md
+          sed -i "s/DATE_PLACEHOLDER/$BUILD_DATE/g" RELEASE_NOTES.md
+          sed -i "s/WORKFLOW_PLACEHOLDER/$WORKFLOW_ID/g" RELEASE_NOTES.md
+          sed -i "s/COMMIT_PLACEHOLDER/$COMMIT_SHA/g" RELEASE_NOTES.md
+
           cat RELEASE_NOTES.md
 
       - name: Create GitHub Release
