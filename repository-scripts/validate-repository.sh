@@ -204,21 +204,23 @@ for distro in "${DISTRIBUTIONS[@]}"; do
 done
 
 # Check for files appearing in multiple pools
-isolation_ok=true
-for filename in "${!file_locations[@]}"; do
-    location="${file_locations[$filename]}"
+if [ ${#file_locations[@]} -gt 0 ]; then
+    for filename in "${!file_locations[@]}"; do
+        location="${file_locations[$filename]}"
 
-    # Count commas to see if it appears in multiple places
-    if [[ "$location" == *","* ]]; then
-        report_warning "File $filename appears in multiple pools: $location"
-        # This is actually expected for architecture-independent packages like stremio-server
-        # So we'll make this a warning, not an error
-    fi
-done
-
-if $isolation_ok; then
-    report_success "Pool isolation check passed (duplicates expected for arch:all packages)"
+        # Count commas to see if it appears in multiple places
+        if [[ "$location" == *","* ]]; then
+            # Check if this is an arch:all package (expected to be in multiple pools)
+            if [[ "$filename" == *"_all.deb" ]]; then
+                report_success "  arch:all package $filename correctly in multiple pools: $location"
+            else
+                report_warning "  File $filename appears in multiple pools: $location (unexpected for arch-specific packages)"
+            fi
+        fi
+    done
 fi
+
+report_success "Pool isolation check passed (duplicates expected for arch:all packages)"
 
 echo ""
 echo "=== TEST 5: Release File Validation ==="
