@@ -184,13 +184,13 @@ for distro in "${DISTRIBUTIONS[@]}"; do
         if [ -d "$pool_path" ]; then
             deb_count=$(find "$pool_path" -name "*.deb" -type f 2>/dev/null | wc -l)
             if [ "$deb_count" -gt 0 ]; then
-                ((pool_count++))
+                pool_count=$((pool_count + 1))
             fi
         fi
     done
 done
 
-if [ $pool_count -gt 0 ]; then
+if [ "$pool_count" -gt 0 ]; then
     report_success "Distribution-specific pool directories verified ($pool_count pools with packages)"
     report_success "Each distribution has isolated packages (arch:all packages may be duplicated, arch-specific packages are distribution-specific)"
 else
