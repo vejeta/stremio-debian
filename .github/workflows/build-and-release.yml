@@ -31,8 +31,11 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        distro: [trixie, bookworm, sid, noble]
+        distro: [testing, trixie, bookworm, sid, noble]
         include:
+          - distro: testing
+            suite: testing
+            os_type: debian
           - distro: trixie
             suite: stable
             os_type: debian
@@ -205,8 +208,11 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        distro: [trixie, bookworm, sid, noble]
+        distro: [testing, trixie, bookworm, sid, noble]
         include:
+          - distro: testing
+            suite: testing
+            os_type: debian
           - distro: trixie
             suite: stable
             os_type: debian
