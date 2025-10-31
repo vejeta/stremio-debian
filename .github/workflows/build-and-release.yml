@@ -347,7 +347,15 @@ jobs:
 
           ### Quick Install (APT Repository) - Recommended
 
-          **For Debian Trixie (13 - current stable):**
+          **For Debian Testing (rolling) - Use if you have both trixie + testing sources:**
+          ```bash
+          wget -qO - https://debian.vejeta.com/key.gpg | sudo gpg --dearmor -o /usr/share/keyrings/stremio-debian.gpg
+          echo "deb [signed-by=/usr/share/keyrings/stremio-debian.gpg] https://debian.vejeta.com testing main non-free" | sudo tee /etc/apt/sources.list.d/stremio.list
+          sudo apt update
+          sudo apt install stremio stremio-server
+          ```
+
+          **For Debian Trixie (13 - current stable) - Use if you ONLY have trixie sources:**
           ```bash
           wget -qO - https://debian.vejeta.com/key.gpg | sudo gpg --dearmor -o /usr/share/keyrings/stremio-debian.gpg
           echo "deb [signed-by=/usr/share/keyrings/stremio-debian.gpg] https://debian.vejeta.com trixie main non-free" | sudo tee /etc/apt/sources.list.d/stremio.list
@@ -389,7 +397,8 @@ jobs:
           ## Distributions Supported
 
           This release includes packages built for:
-          - **Debian Trixie (13)** - Current stable
+          - **Debian Testing** - Rolling distribution (use if you have both trixie + testing sources)
+          - **Debian Trixie (13)** - Current stable (use if you only have trixie sources)
           - **Debian Bookworm (12)** - Previous stable
           - **Debian Sid** - Unstable (compatible with Kali Rolling)
           - **Ubuntu 24.04 LTS (Noble)** - EXPERIMENTAL (community testing)
