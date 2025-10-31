@@ -207,6 +207,12 @@ jobs:
           gpg --armor --export "${{ secrets.GPG_KEY_ID }}" > debian-repo/key.gpg
           echo "GPG key exported to key.gpg"
 
+      - name: Validate repository structure
+        run: |
+          echo "=== Running automated repository validation ==="
+          chmod +x ./repository-scripts/validate-repository.sh
+          ./repository-scripts/validate-repository.sh debian-repo
+
       - name: Create repository index page
         run: |
           cat > debian-repo/index.html << 'EOF'
