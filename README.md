@@ -26,7 +26,10 @@ wget -qO - https://debian.vejeta.com/key.gpg | sudo gpg --dearmor -o /usr/share/
 
 # Add repository for your Debian version:
 
-# For Debian 13 (trixie - current stable)
+# For Debian testing (rolling) - Use if you have both trixie + testing sources
+echo "deb [signed-by=/usr/share/keyrings/stremio-debian.gpg] https://debian.vejeta.com testing main non-free" | sudo tee /etc/apt/sources.list.d/stremio.list
+
+# OR for Debian 13 (trixie - current stable) - Use if you ONLY have trixie sources
 echo "deb [signed-by=/usr/share/keyrings/stremio-debian.gpg] https://debian.vejeta.com trixie main non-free" | sudo tee /etc/apt/sources.list.d/stremio.list
 
 # OR for Debian 12 (bookworm - previous stable)
@@ -41,7 +44,8 @@ sudo apt install stremio stremio-server
 ```
 
 **Supported Distributions:**
-- Debian 13 (trixie) - Current stable
+- Debian testing - Rolling distribution (use if you have both trixie + testing sources)
+- Debian 13 (trixie) - Current stable (use if you only have trixie sources)
 - Debian 12 (bookworm) - Previous stable
 - Debian sid (unstable) - Rolling release (compatible with Kali Linux)
 
@@ -156,7 +160,7 @@ This repository provides two complementary packages following Debian's architect
 - **Sync**: Instant webhooks from Salsa + weekly fallback cron
 - **Releases**: Immutable package artifacts with download tracking
 - **Pages**: APT repository metadata and package hosting
-- **Multi-Distro**: Supports trixie (Debian 13), bookworm (Debian 12), and sid (unstable/Kali)
+- **Multi-Distro**: Supports testing (rolling), trixie (Debian 13), bookworm (Debian 12), and sid (unstable/Kali)
 
 ---
 
@@ -181,15 +185,19 @@ qtdeclarative-abi-5-15-10
 
 GitHub Actions matrix strategy builds packages in separate containers:
 
-- **`debian:trixie`** → Packages with trixie dependencies → `dists/trixie/`
+- **`debian:testing`** → Packages with testing dependencies (Qt 5.15.17) → `dists/testing/`
+- **`debian:trixie`** → Packages with trixie dependencies (Qt 5.15.15) → `dists/trixie/`
 - **`debian:bookworm`** → Packages with bookworm dependencies → `dists/bookworm/`
 - **`debian:sid`** → Packages with sid dependencies → `dists/sid/`
 
 Each distribution gets **native packages** with correct dependencies for that release.
 
+**Important**: Use `testing` packages if you have both trixie and testing sources configured (check `/etc/apt/sources.list` and `/etc/apt/sources.list.d/`). Use `trixie` packages if you only have trixie sources.
+
 ### Package Naming
 
 To avoid conflicts, `.deb` files are renamed with distribution suffixes during build:
+- `stremio_4.4.169+dfsg-1_amd64-testing.deb`
 - `stremio_4.4.169+dfsg-1_amd64-trixie.deb`
 - `stremio_4.4.169+dfsg-1_amd64-bookworm.deb`
 - `stremio_4.4.169+dfsg-1_amd64-sid.deb`
