@@ -17,14 +17,14 @@ echo "Suite: $SUITE"
 echo "Component: $COMPONENT"
 echo "Architecture: $ARCH"
 
-# Create directory structure
+# Create directory structure with distribution-specific pool
 mkdir -p "$OUTPUT_DIR/dists/$SUITE/$COMPONENT/binary-$ARCH"
-mkdir -p "$OUTPUT_DIR/pool/$COMPONENT"
+mkdir -p "$OUTPUT_DIR/pool/$SUITE/$COMPONENT"
 
-# Copy .deb files to pool
-echo "=== Copying packages to pool ==="
+# Copy .deb files to distribution-specific pool
+echo "=== Copying packages to pool/$SUITE/$COMPONENT ==="
 if [ -d "$PACKAGES_DIR" ]; then
-    find "$PACKAGES_DIR" -name "*.deb" -type f -exec cp -v {} "$OUTPUT_DIR/pool/$COMPONENT/" \;
+    find "$PACKAGES_DIR" -name "*.deb" -type f -exec cp -v {} "$OUTPUT_DIR/pool/$SUITE/$COMPONENT/" \;
 else
     echo "Warning: Packages directory not found: $PACKAGES_DIR"
 fi
@@ -35,7 +35,7 @@ cd "$OUTPUT_DIR"
 
 # Use dpkg-scanpackages to generate package index
 if command -v dpkg-scanpackages &> /dev/null; then
-    dpkg-scanpackages --multiversion "pool/$COMPONENT" /dev/null > "dists/$SUITE/$COMPONENT/binary-$ARCH/Packages"
+    dpkg-scanpackages --multiversion "pool/$SUITE/$COMPONENT" /dev/null > "dists/$SUITE/$COMPONENT/binary-$ARCH/Packages"
 else
     echo "Error: dpkg-scanpackages not found"
     exit 1
