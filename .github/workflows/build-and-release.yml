@@ -52,7 +52,15 @@ jobs:
     steps:
       - name: Install build dependencies
         run: |
+          # Update package lists
           apt-get update
+
+          # CRITICAL: Upgrade all packages to latest versions
+          # This ensures Qt and other libraries match current distribution state
+          # Prevents Qt ABI mismatches like qtdeclarative-abi-5-15-15 vs 5-15-17
+          apt-get upgrade -y
+
+          # Install build dependencies
           apt-get install -y \
             git git-buildpackage pristine-tar \
             debhelper-compat cmake \
@@ -217,7 +225,14 @@ jobs:
     steps:
       - name: Install build dependencies
         run: |
+          # Update package lists
           apt-get update
+
+          # CRITICAL: Upgrade all packages to latest versions
+          # This ensures consistent environment with stremio-client builds
+          apt-get upgrade -y
+
+          # Install build dependencies
           apt-get install -y \
             git git-buildpackage pristine-tar \
             debhelper-compat nodejs npm \
