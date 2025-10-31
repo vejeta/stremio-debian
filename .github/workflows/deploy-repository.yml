@@ -46,7 +46,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           # Create directory structure for each distribution
-          mkdir -p packages/{trixie,bookworm,sid,noble}/{main,non-free}
+          mkdir -p packages/{testing,trixie,bookworm,sid,noble}/{main,non-free}
 
           # Download latest release assets
           gh release list --limit 1 --json tagName,name | jq -r '.[0].tagName' > latest_tag.txt
@@ -98,7 +98,7 @@ jobs:
 
             echo ""
             echo "=== Organized packages ==="
-            for distro in trixie bookworm sid noble; do
+            for distro in testing trixie bookworm sid noble; do
               echo "Distribution: $distro"
               echo "  main:"
               ls -lh packages/$distro/main/ 2>/dev/null || echo "    (empty)"
@@ -117,6 +117,10 @@ jobs:
       - name: Generate APT repositories for all distributions
         run: |
           chmod +x repository-scripts/*.sh
+
+          echo "=== Generating repository for Debian testing (rolling) ==="
+          ./repository-scripts/generate-apt-repo.sh packages/testing/main debian-repo testing main
+          ./repository-scripts/generate-apt-repo.sh packages/testing/non-free debian-repo testing non-free
 
           echo "=== Generating repository for Debian 13 (trixie - stable) ==="
           ./repository-scripts/generate-apt-repo.sh packages/trixie/main debian-repo trixie main
@@ -181,6 +185,7 @@ jobs:
           }
 
           # Update all distributions
+          update_release testing
           update_release trixie
           update_release bookworm
           update_release sid
@@ -190,6 +195,9 @@ jobs:
 
       - name: Sign repositories for all distributions
         run: |
+          echo "=== Signing testing repository ==="
+          ./repository-scripts/sign-repository.sh debian-repo testing "${{ secrets.GPG_KEY_ID }}"
+
           echo "=== Signing trixie repository ==="
           ./repository-scripts/sign-repository.sh debian-repo trixie "${{ secrets.GPG_KEY_ID }}"
 
@@ -283,7 +291,10 @@ jobs:
 
               <h3>2. Add repository to sources</h3>
 
-              <p><strong>For Debian 13 (trixie - stable):</strong></p>
+              <p><strong>For Debian testing (rolling) - Use if you have both trixie + testing sources:</strong></p>
+              <pre>echo "deb [signed-by=/usr/share/keyrings/stremio-debian.gpg] https://debian.vejeta.com testing main non-free" | sudo tee /etc/apt/sources.list.d/stremio.list</pre>
+
+              <p><strong>For Debian 13 (trixie - stable) - Use if you ONLY have trixie sources:</strong></p>
               <pre>echo "deb [signed-by=/usr/share/keyrings/stremio-debian.gpg] https://debian.vejeta.com trixie main non-free" | sudo tee /etc/apt/sources.list.d/stremio.list</pre>
 
               <p><strong>For Debian 12 (bookworm - oldstable):</strong></p>
@@ -305,7 +316,8 @@ jobs:
 
               <h2>Supported Distributions</h2>
               <ul>
-                  <li><strong>Debian 13 (trixie)</strong> - Current stable release</li>
+                  <li><strong>Debian testing</strong> - Rolling distribution (use if you have both trixie + testing sources)</li>
+                  <li><strong>Debian 13 (trixie)</strong> - Current stable release (use if you only have trixie sources)</li>
                   <li><strong>Debian 12 (bookworm)</strong> - Previous stable release</li>
                   <li><strong>Debian sid (unstable)</strong> - Rolling release (compatible with Kali Linux)</li>
                   <li><strong>Ubuntu 24.04 LTS (noble)</strong> - EXPERIMENTAL (community testing)</li>
@@ -378,15 +390,19 @@ jobs:
           echo "Custom domain: https://debian.vejeta.com"
           echo ""
           echo "=== Supported Distributions ==="
-          echo "📦 Debian 13 (trixie) - current stable"
+          echo "📦 Debian testing - rolling (use if you have both trixie + testing sources)"
+          echo "📦 Debian 13 (trixie) - current stable (use if you only have trixie sources)"
           echo "📦 Debian 12 (bookworm) - previous stable"
           echo "📦 Debian sid (unstable) - rolling release (Kali compatible)"
           echo "📦 Ubuntu 24.04 LTS (noble) - EXPERIMENTAL"
           echo ""
           echo "Users can add the repository with:"
           echo ""
-          echo "For trixie:"
+          echo "For testing:"
           echo "  wget -qO - https://debian.vejeta.com/key.gpg | sudo gpg --dearmor -o /usr/share/keyrings/stremio-debian.gpg"
+          echo "  echo \"deb [signed-by=/usr/share/keyrings/stremio-debian.gpg] https://debian.vejeta.com testing main non-free\" | sudo tee /etc/apt/sources.list.d/stremio.list"
+          echo ""
+          echo "For trixie:"
           echo "  echo \"deb [signed-by=/usr/share/keyrings/stremio-debian.gpg] https://debian.vejeta.com trixie main non-free\" | sudo tee /etc/apt/sources.list.d/stremio.list"
           echo ""
           echo "For bookworm:"
