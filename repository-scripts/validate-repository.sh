@@ -6,7 +6,7 @@
 set -euo pipefail
 
 REPO_DIR="${1:-./debian-repo}"
-DISTRIBUTIONS=("trixie" "bookworm" "sid" "noble")
+DISTRIBUTIONS=("testing" "trixie" "bookworm" "sid" "noble")
 COMPONENTS=("main" "non-free")
 ARCH="amd64"
 

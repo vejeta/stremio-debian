@@ -4,7 +4,7 @@
 
 set -euo pipefail
 
-DISTRIBUTIONS="${1:-trixie bookworm sid noble}"
+DISTRIBUTIONS="${1:-testing trixie bookworm sid noble}"
 REPO_URL="${2:-https://debian.vejeta.com}"
 TEST_RESULTS_DIR="test-results"
 
@@ -34,6 +34,9 @@ for distro in $DISTRIBUTIONS; do
 
     # Determine base Docker image
     case "$distro" in
+        testing)
+            BASE_IMAGE="debian:testing"
+            ;;
         trixie)
             BASE_IMAGE="debian:trixie"
             ;;
