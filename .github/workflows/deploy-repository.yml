@@ -138,6 +138,21 @@ jobs:
           ./repository-scripts/generate-apt-repo.sh packages/noble/main debian-repo noble main
           ./repository-scripts/generate-apt-repo.sh packages/noble/non-free debian-repo noble non-free
 
+      - name: Create empty non-free-firmware components
+        run: |
+          # Debian 12+ expects non-free-firmware component
+          # Create empty Packages files to match Release file declaration
+          for distro in testing trixie bookworm sid noble; do
+            echo "Creating empty non-free-firmware for $distro"
+            mkdir -p debian-repo/dists/$distro/non-free-firmware/binary-amd64
+
+            # Create empty Packages file
+            touch debian-repo/dists/$distro/non-free-firmware/binary-amd64/Packages
+
+            # Compress it
+            gzip -k -f debian-repo/dists/$distro/non-free-firmware/binary-amd64/Packages
+          done
+
       - name: Update Release files for all distributions
         run: |
           cd debian-repo
@@ -147,12 +162,14 @@ jobs:
             local SUITE=$1
             echo "=== Updating Release file for $SUITE ==="
 
+            # Debian 12+ uses split non-free components (non-free + non-free-firmware)
+            # List both even though we only use non-free, to suppress APT notices
             cat > dists/$SUITE/Release << EOF
           Origin: Stremio Debian Repository
           Label: Stremio
           Suite: $SUITE
           Codename: $SUITE
-          Components: main non-free
+          Components: main non-free non-free-firmware
           Architectures: amd64
           Description: Unofficial Debian packages for Stremio media center ($SUITE)
           Date: $(date -R -u)
