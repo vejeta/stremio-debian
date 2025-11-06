@@ -51,6 +51,11 @@ jobs:
             os_type: ubuntu
 
     steps:
+      - name: Set up QEMU for multi-architecture builds
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: linux/amd64,linux/arm64
+
       - name: Checkout repository with submodules
         uses: actions/checkout@v4
         with:
@@ -58,113 +63,123 @@ jobs:
           submodules: recursive
 
       - name: Build in ${{ matrix.arch }} container
-        uses: uraimo/run-on-arch-action@v2
-        with:
-          arch: ${{ matrix.arch }}
-          distro: ${{ matrix.distro }}
-          dockerRunArgs: --privileged
-          env: |
-            DEBIAN_FRONTEND: noninteractive
-            DEBEMAIL: vejeta@gmail.com
-            DEBFULLNAME: Juan Manuel Méndez Rey
-          install: |
-            # Update package lists
-            apt-get update
+        run: |
+          # Determine Docker image based on os_type
+          if [ "${{ matrix.os_type }}" = "ubuntu" ]; then
+            IMAGE="ubuntu:${{ matrix.distro }}"
+          else
+            IMAGE="debian:${{ matrix.distro }}"
+          fi
 
-            # CRITICAL: Upgrade all packages to latest versions
-            # This ensures Qt and other libraries match current distribution state
-            # Prevents Qt ABI mismatches like qtdeclarative-abi-5-15-15 vs 5-15-17
-            apt-get upgrade -y
+          # Run build in architecture-specific container
+          docker run --rm --platform linux/${{ matrix.arch }} --privileged \
+            -v "$PWD:/workspace" \
+            -w /workspace \
+            -e DEBIAN_FRONTEND=noninteractive \
+            -e DEBEMAIL="vejeta@gmail.com" \
+            -e DEBFULLNAME="Juan Manuel Méndez Rey" \
+            "$IMAGE" \
+            bash -c '
+              set -e
 
-            # Install build dependencies
-            apt-get install -y \
-              git git-buildpackage pristine-tar \
-              debhelper-compat cmake \
-              qtbase5-dev qt5-qmake qt5-qmake-bin \
-              qtdeclarative5-dev qtwebengine5-dev qttools5-dev \
-              qml-module-qtwebchannel qml-module-qt-labs-platform \
-              qml-module-qtwebengine qml-module-qtquick-dialogs \
-              qml-module-qtquick-controls qml-module-qt-labs-settings \
-              qml-module-qt-labs-folderlistmodel \
-              libmpv-dev libssl-dev nodejs npm pkg-kde-tools \
-              devscripts lintian dpkg-dev fakeroot librsvg2-bin
-          run: |
-            # Configure git for gbp
-            git config --global user.email "$DEBEMAIL"
-            git config --global user.name "$DEBFULLNAME"
-            git config --global --add safe.directory '*'
+              # Update package lists
+              apt-get update
 
-            # Create upstream tarball
-            cd stremio-client
+              # CRITICAL: Upgrade all packages to latest versions
+              # This ensures Qt and other libraries match current distribution state
+              # Prevents Qt ABI mismatches like qtdeclarative-abi-5-15-15 vs 5-15-17
+              apt-get upgrade -y
 
-            # Get version from changelog (without debian revision)
-            if [ -f debian/changelog ]; then
-              VERSION=$(dpkg-parsechangelog -S Version | cut -d- -f1)
-              echo "Creating upstream tarball for version: $VERSION"
-            else
-              echo "Error: debian/changelog not found"
-              exit 1
-            fi
+              # Install build dependencies
+              apt-get install -y \
+                git git-buildpackage pristine-tar \
+                debhelper-compat cmake \
+                qtbase5-dev qt5-qmake qt5-qmake-bin \
+                qtdeclarative5-dev qtwebengine5-dev qttools5-dev \
+                qml-module-qtwebchannel qml-module-qt-labs-platform \
+                qml-module-qtwebengine qml-module-qtquick-dialogs \
+                qml-module-qtquick-controls qml-module-qt-labs-settings \
+                qml-module-qt-labs-folderlistmodel \
+                libmpv-dev libssl-dev nodejs npm pkg-kde-tools \
+                devscripts lintian dpkg-dev fakeroot librsvg2-bin
 
-            # Try pristine-tar with both .tar.xz and .tar.gz formats
-            if git rev-parse --verify pristine-tar >/dev/null 2>&1; then
-              echo "Attempting to use pristine-tar..."
-              if pristine-tar checkout ../stremio_${VERSION}.orig.tar.xz 2>/dev/null; then
-                echo "✓ Generated tarball from pristine-tar (tar.xz)"
-              elif pristine-tar checkout ../stremio_${VERSION}.orig.tar.gz 2>/dev/null; then
-                echo "✓ Generated tarball from pristine-tar (tar.gz)"
-              fi
-            fi
+              # Configure git for gbp
+              git config --global user.email "$DEBEMAIL"
+              git config --global user.name "$DEBFULLNAME"
+              git config --global --add safe.directory "*"
 
-            # If pristine-tar didn't work, create from upstream tag
-            if [ ! -f ../stremio_${VERSION}.orig.tar.xz ] && [ ! -f ../stremio_${VERSION}.orig.tar.gz ]; then
-              echo "Generating tarball from upstream tag..."
-              UPSTREAM_TAG=$(git tag -l "upstream/*" | grep -E "${VERSION%+*}" | tail -1)
+              # Create upstream tarball
+              cd stremio-client
 
-              if [ -n "$UPSTREAM_TAG" ]; then
-                echo "Using upstream tag: $UPSTREAM_TAG"
-                git archive --format=tar --prefix=stremio-${VERSION%+*}/ $UPSTREAM_TAG | xz > ../stremio_${VERSION}.orig.tar.xz
+              # Get version from changelog (without debian revision)
+              if [ -f debian/changelog ]; then
+                VERSION=$(dpkg-parsechangelog -S Version | cut -d- -f1)
+                echo "Creating upstream tarball for version: $VERSION"
               else
-                echo "No upstream tag found, creating from current source..."
-                cd ..
-                tar --exclude-vcs --exclude='debian' --exclude='.pc' \
-                  -cJf stremio_${VERSION}.orig.tar.xz stremio-client/
-                cd stremio-client
+                echo "Error: debian/changelog not found"
+                exit 1
               fi
-            fi
 
-            # Show what we created
-            ls -lh ../stremio_${VERSION}.orig.tar.* || true
+              # Try pristine-tar with both .tar.xz and .tar.gz formats
+              if git rev-parse --verify pristine-tar >/dev/null 2>&1; then
+                echo "Attempting to use pristine-tar..."
+                if pristine-tar checkout ../stremio_${VERSION}.orig.tar.xz 2>/dev/null; then
+                  echo "✓ Generated tarball from pristine-tar (tar.xz)"
+                elif pristine-tar checkout ../stremio_${VERSION}.orig.tar.gz 2>/dev/null; then
+                  echo "✓ Generated tarball from pristine-tar (tar.gz)"
+                fi
+              fi
 
-            # Build both source and binary packages
-            echo "=== Building packages ==="
-            QT_DEFAULT_MAJOR_VERSION=5 dpkg-buildpackage -us -uc -sa
+              # If pristine-tar did not work, create from upstream tag
+              if [ ! -f ../stremio_${VERSION}.orig.tar.xz ] && [ ! -f ../stremio_${VERSION}.orig.tar.gz ]; then
+                echo "Generating tarball from upstream tag..."
+                UPSTREAM_TAG=$(git tag -l "upstream/*" | grep -E "${VERSION%+*}" | tail -1)
 
-            # Run lintian checks
-            echo "=== Running lintian checks ==="
-            lintian --info --display-info --pedantic ../*.deb || true
+                if [ -n "$UPSTREAM_TAG" ]; then
+                  echo "Using upstream tag: $UPSTREAM_TAG"
+                  git archive --format=tar --prefix=stremio-${VERSION%+*}/ $UPSTREAM_TAG | xz > ../stremio_${VERSION}.orig.tar.xz
+                else
+                  echo "No upstream tag found, creating from current source..."
+                  cd ..
+                  tar --exclude-vcs --exclude=debian --exclude=.pc \
+                    -cJf stremio_${VERSION}.orig.tar.xz stremio-client/
+                  cd stremio-client
+                fi
+              fi
 
-            # Smoke test (Ubuntu only)
-            if [ "${{ matrix.os_type }}" = "ubuntu" ]; then
-              echo "=== Ubuntu Package Smoke Test ==="
-              apt install -y ../*.deb || true
+              # Show what we created
+              ls -lh ../stremio_${VERSION}.orig.tar.* || true
 
-              # Test binary exists
-              which stremio && echo "✓ stremio binary found" || echo "✗ stremio binary not found"
+              # Build both source and binary packages
+              echo "=== Building packages ==="
+              QT_DEFAULT_MAJOR_VERSION=5 dpkg-buildpackage -us -uc -sa
 
-              # Test version
-              stremio --version 2>&1 || true
+              # Run lintian checks
+              echo "=== Running lintian checks ==="
+              lintian --info --display-info --pedantic ../*.deb || true
 
-              # Check dependencies
-              echo "=== Checking linked libraries ==="
-              ldd /usr/bin/stremio | grep -E "(libQt5|libmpv|libcrypto)" || true
+              # Smoke test (Ubuntu only)
+              if [ "${{ matrix.os_type }}" = "ubuntu" ]; then
+                echo "=== Ubuntu Package Smoke Test ==="
+                apt install -y ../*.deb || true
 
-              # Test headless launch (will timeout, that's expected)
-              echo "=== Testing headless GUI initialization ==="
-              export QT_QPA_PLATFORM=offscreen
-              export QTWEBENGINE_DISABLE_SANDBOX=1
-              timeout 10s stremio 2>&1 || echo "✓ GUI initialization test completed"
-            fi
+                # Test binary exists
+                which stremio && echo "✓ stremio binary found" || echo "✗ stremio binary not found"
+
+                # Test version
+                stremio --version 2>&1 || true
+
+                # Check dependencies
+                echo "=== Checking linked libraries ==="
+                ldd /usr/bin/stremio | grep -E "(libQt5|libmpv|libcrypto)" || true
+
+                # Test headless launch (will timeout, that is expected)
+                echo "=== Testing headless GUI initialization ==="
+                export QT_QPA_PLATFORM=offscreen
+                export QTWEBENGINE_DISABLE_SANDBOX=1
+                timeout 10s stremio 2>&1 || echo "✓ GUI initialization test completed"
+              fi
+            '
 
       - name: Collect build artifacts
         run: |
