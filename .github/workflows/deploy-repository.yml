@@ -119,24 +119,34 @@ jobs:
           chmod +x repository-scripts/*.sh
 
           echo "=== Generating repository for Debian testing (rolling) ==="
-          ./repository-scripts/generate-apt-repo.sh packages/testing/main debian-repo testing main
-          ./repository-scripts/generate-apt-repo.sh packages/testing/non-free debian-repo testing non-free
+          ./repository-scripts/generate-apt-repo.sh packages/testing/main debian-repo testing main amd64
+          ./repository-scripts/generate-apt-repo.sh packages/testing/main debian-repo testing main arm64
+          ./repository-scripts/generate-apt-repo.sh packages/testing/non-free debian-repo testing non-free amd64
+          ./repository-scripts/generate-apt-repo.sh packages/testing/non-free debian-repo testing non-free arm64
 
           echo "=== Generating repository for Debian 13 (trixie - stable) ==="
-          ./repository-scripts/generate-apt-repo.sh packages/trixie/main debian-repo trixie main
-          ./repository-scripts/generate-apt-repo.sh packages/trixie/non-free debian-repo trixie non-free
+          ./repository-scripts/generate-apt-repo.sh packages/trixie/main debian-repo trixie main amd64
+          ./repository-scripts/generate-apt-repo.sh packages/trixie/main debian-repo trixie main arm64
+          ./repository-scripts/generate-apt-repo.sh packages/trixie/non-free debian-repo trixie non-free amd64
+          ./repository-scripts/generate-apt-repo.sh packages/trixie/non-free debian-repo trixie non-free arm64
 
           echo "=== Generating repository for Debian 12 (bookworm - oldstable) ==="
-          ./repository-scripts/generate-apt-repo.sh packages/bookworm/main debian-repo bookworm main
-          ./repository-scripts/generate-apt-repo.sh packages/bookworm/non-free debian-repo bookworm non-free
+          ./repository-scripts/generate-apt-repo.sh packages/bookworm/main debian-repo bookworm main amd64
+          ./repository-scripts/generate-apt-repo.sh packages/bookworm/main debian-repo bookworm main arm64
+          ./repository-scripts/generate-apt-repo.sh packages/bookworm/non-free debian-repo bookworm non-free amd64
+          ./repository-scripts/generate-apt-repo.sh packages/bookworm/non-free debian-repo bookworm non-free arm64
 
           echo "=== Generating repository for Debian sid (unstable) ==="
-          ./repository-scripts/generate-apt-repo.sh packages/sid/main debian-repo sid main
-          ./repository-scripts/generate-apt-repo.sh packages/sid/non-free debian-repo sid non-free
+          ./repository-scripts/generate-apt-repo.sh packages/sid/main debian-repo sid main amd64
+          ./repository-scripts/generate-apt-repo.sh packages/sid/main debian-repo sid main arm64
+          ./repository-scripts/generate-apt-repo.sh packages/sid/non-free debian-repo sid non-free amd64
+          ./repository-scripts/generate-apt-repo.sh packages/sid/non-free debian-repo sid non-free arm64
 
           echo "=== Generating repository for Ubuntu 24.04 (noble - LTS) - EXPERIMENTAL ==="
-          ./repository-scripts/generate-apt-repo.sh packages/noble/main debian-repo noble main
-          ./repository-scripts/generate-apt-repo.sh packages/noble/non-free debian-repo noble non-free
+          ./repository-scripts/generate-apt-repo.sh packages/noble/main debian-repo noble main amd64
+          ./repository-scripts/generate-apt-repo.sh packages/noble/main debian-repo noble main arm64
+          ./repository-scripts/generate-apt-repo.sh packages/noble/non-free debian-repo noble non-free amd64
+          ./repository-scripts/generate-apt-repo.sh packages/noble/non-free debian-repo noble non-free arm64
 
       - name: Create empty non-free-firmware components
         run: |
@@ -144,13 +154,17 @@ jobs:
           # Create empty Packages files to match Release file declaration
           for distro in testing trixie bookworm sid noble; do
             echo "Creating empty non-free-firmware for $distro"
-            mkdir -p debian-repo/dists/$distro/non-free-firmware/binary-amd64
 
-            # Create empty Packages file
-            touch debian-repo/dists/$distro/non-free-firmware/binary-amd64/Packages
+            # Create for both amd64 and arm64
+            for arch in amd64 arm64; do
+              mkdir -p debian-repo/dists/$distro/non-free-firmware/binary-$arch
 
-            # Compress it
-            gzip -k -f debian-repo/dists/$distro/non-free-firmware/binary-amd64/Packages
+              # Create empty Packages file
+              touch debian-repo/dists/$distro/non-free-firmware/binary-$arch/Packages
+
+              # Compress it
+              gzip -k -f debian-repo/dists/$distro/non-free-firmware/binary-$arch/Packages
+            done
           done
 
       - name: Update Release files for all distributions
@@ -170,7 +184,7 @@ jobs:
           Suite: $SUITE
           Codename: $SUITE
           Components: main non-free non-free-firmware
-          Architectures: amd64
+          Architectures: amd64 arm64
           Description: Unofficial Debian packages for Stremio media center ($SUITE)
           Date: $(date -R -u)
           EOF
@@ -285,7 +299,7 @@ jobs:
           <body>
               <h1>🎬 Stremio Debian Repository</h1>
 
-              <p>Unofficial Debian packages for <strong>Stremio</strong> media center, built from source and following Debian packaging standards.</p>
+              <p>Unofficial Debian packages for <strong>Stremio</strong> media center, built from source and following Debian packaging standards. Available for <strong>amd64</strong> and <strong>arm64</strong> (Raspberry Pi) architectures.</p>
 
               <div class="warning">
                   <strong>⚠️ Unofficial Repository:</strong> These packages are not part of the official Debian archive. Use at your own discretion.
@@ -343,8 +357,15 @@ jobs:
               <h2>Available Packages</h2>
 
               <ul>
-                  <li><strong>stremio</strong> (main/free): Desktop client with Qt5/QML interface</li>
-                  <li><strong>stremio-server</strong> (non-free): BitTorrent streaming server</li>
+                  <li><strong>stremio</strong> (main/free): Desktop client with Qt5/QML interface (amd64, arm64)</li>
+                  <li><strong>stremio-server</strong> (non-free): BitTorrent streaming server (all architectures)</li>
+              </ul>
+
+              <h2>Supported Architectures</h2>
+
+              <ul>
+                  <li><strong>amd64</strong> - Standard x86_64 desktop/laptop computers</li>
+                  <li><strong>arm64</strong> - Raspberry Pi 3/4/5 (64-bit) and other ARM64 devices</li>
               </ul>
 
               <h2>Manual Download</h2>

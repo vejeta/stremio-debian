@@ -7,12 +7,13 @@
 ![Repository Status](https://img.shields.io/website?down_message=offline&label=APT%20repository&up_message=online&url=https%3A%2F%2Fdebian.vejeta.com)
 ![GitHub issues](https://img.shields.io/github/issues/vejeta/stremio-debian)
 ![Platform](https://img.shields.io/badge/platform-Debian%20%7C%20Ubuntu-blue)
+![Architecture](https://img.shields.io/badge/arch-amd64%20%7C%20arm64-green)
 ![License](https://img.shields.io/github/license/vejeta/stremio-debian)
 [![License: GPL-3.0](https://img.shields.io/badge/License-GPL%203.0-green.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
 Modern Debian packaging for the complete **Stremio** media center ecosystem, resolving compatibility issues with current Debian/Ubuntu distributions.
 
-**Hosted on GitHub Pages** • **Zero server costs** • **Unlimited bandwidth** • **Automatic builds**
+**Hosted on GitHub Pages** • **Zero server costs** • **Unlimited bandwidth** • **Automatic builds** • **ARM64 support for Raspberry Pi**
 
 ---
 
@@ -71,7 +72,7 @@ This repository provides two complementary packages following Debian's architect
 
 ### `stremio` (main/free)
 - **License**: GPL-3.0-or-later
-- **Architecture**: amd64
+- **Architecture**: amd64, arm64 (Raspberry Pi compatible)
 - **Upstream**: [github.com/Stremio/stremio-shell](https://github.com/Stremio/stremio-shell)
 - **Packaging**: [salsa.debian.org/mendezr/stremio](https://salsa.debian.org/mendezr/stremio)
 - **Contents**: Desktop client (C++/Qt5/QML)
@@ -114,6 +115,7 @@ This repository provides two complementary packages following Debian's architect
 ### Infrastructure
 - ✅ **Automated CI/CD**: GitHub Actions pipeline for both packages
 - ✅ **Multi-Distribution Builds**: Separate builds for trixie, bookworm, and sid
+- ✅ **Multi-Architecture Support**: Native amd64 and arm64 (Raspberry Pi) packages
 - ✅ **GitHub Pages APT**: Professional repository with GPG signing
 - ✅ **Zero Hosting Costs**: Unlimited bandwidth via GitHub infrastructure
 - ✅ **Download Statistics**: Built-in analytics via GitHub Releases
