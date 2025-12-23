@@ -4,3 +4,9 @@
 [submodule "stremio-server"]
 	path = stremio-server
 	url = https://salsa.debian.org/mendezr/stremio-server.git
+[submodule "chromium-embedded-framework"]
+	path = chromium-embedded-framework
+	url = https://salsa.debian.org/mendezr/chromium-embedded-framework.git
+[submodule "stremio-gtk"]
+	path = stremio-gtk
+	url = https://salsa.debian.org/mendezr/stremio-gtk.git

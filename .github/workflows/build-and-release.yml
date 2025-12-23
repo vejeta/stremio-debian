@@ -331,9 +331,116 @@ jobs:
           path: artifacts/stremio-server-${{ matrix.distro }}/*
           retention-days: 30
 
+  build-stremio-gtk:
+    name: Build stremio-gtk (main/free) - sid amd64
+    runs-on: ubuntu-latest
+    # Only build for sid/amd64 - matches CEF availability
+    # CEF packages must be available in the APT repository first
+
+    steps:
+      - name: Checkout repository with submodules
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Verify stremio-gtk submodule
+        run: |
+          if [ ! -d "stremio-gtk/debian" ]; then
+            echo "ERROR: stremio-gtk submodule not properly checked out"
+            exit 1
+          fi
+          echo "stremio-gtk submodule verified"
+          ls -la stremio-gtk/
+
+      - name: Build in sid container
+        run: |
+          docker run --rm --platform linux/amd64 --privileged \
+            -v "$PWD:/workspace" \
+            -w /workspace \
+            -e DEBIAN_FRONTEND=noninteractive \
+            -e DEBEMAIL="vejeta@gmail.com" \
+            -e DEBFULLNAME="Juan Manuel Mendez Rey" \
+            debian:sid \
+            bash -c '
+              set -e
+
+              # Update and upgrade
+              apt-get update && apt-get upgrade -y
+
+              # Add stremio-debian repository for CEF packages
+              apt-get install -y wget gnupg
+              wget -qO - https://debian.vejeta.com/key.gpg | gpg --dearmor -o /usr/share/keyrings/stremio-debian.gpg
+              echo "deb [signed-by=/usr/share/keyrings/stremio-debian.gpg] https://debian.vejeta.com sid main non-free" > /etc/apt/sources.list.d/stremio.list
+              apt-get update
+
+              # Install build dependencies
+              apt-get install -y \
+                git git-buildpackage pristine-tar \
+                debhelper-compat quilt \
+                rustc cargo \
+                libgtk-3-dev libgtk-4-dev libadwaita-1-dev \
+                libwebkitgtk-6.0-dev libmpv-dev libepoxy-dev \
+                libcef-dev cef-resources \
+                gettext nodejs pkgconf \
+                devscripts lintian dpkg-dev fakeroot
+
+              # Configure git
+              git config --global user.email "$DEBEMAIL"
+              git config --global user.name "$DEBFULLNAME"
+              git config --global --add safe.directory "*"
+
+              cd stremio-gtk
+
+              # Get version from changelog
+              VERSION=$(dpkg-parsechangelog -S Version)
+              echo "Building stremio-gtk version: $VERSION"
+
+              # Build the package
+              dpkg-buildpackage -us -uc
+
+              # Lintian check
+              echo "=== Running lintian checks ==="
+              lintian --info --display-info --pedantic ../*.deb || true
+            '
+
+      - name: Collect build artifacts
+        run: |
+          mkdir -p artifacts/stremio-gtk-sid-amd64
+
+          for deb in stremio-gtk/../*.deb; do
+            if [ -f "$deb" ]; then
+              filename=$(basename "$deb")
+              # Add distro suffix
+              newname="${filename%.deb}-sid.deb"
+              mv "$deb" "artifacts/stremio-gtk-sid-amd64/$newname"
+            fi
+          done
+
+          # Move other artifacts
+          mv stremio-gtk/../*.buildinfo artifacts/stremio-gtk-sid-amd64/ 2>/dev/null || true
+          mv stremio-gtk/../*.changes artifacts/stremio-gtk-sid-amd64/ 2>/dev/null || true
+
+          echo "=== Collected artifacts ==="
+          ls -lah artifacts/stremio-gtk-sid-amd64/
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: stremio-gtk-packages-sid-amd64
+          path: artifacts/stremio-gtk-sid-amd64/*.deb
+          retention-days: 30
+
+      - name: Upload all artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: stremio-gtk-all-sid-amd64
+          path: artifacts/stremio-gtk-sid-amd64/*
+          retention-days: 30
+
   create-release:
     name: Create GitHub Release
-    needs: [build-stremio-client, build-stremio-server]
+    needs: [build-stremio-client, build-stremio-server, build-stremio-gtk]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v')
 
@@ -456,6 +563,7 @@ jobs:
           files: |
             release-artifacts/stremio-client-packages-*/*.deb
             release-artifacts/stremio-server-packages-*/*.deb
+            release-artifacts/stremio-gtk-packages-*/*.deb
             release-artifacts/stremio-client-all-trixie/*.dsc
             release-artifacts/stremio-client-all-trixie/*.tar.*
         env:
