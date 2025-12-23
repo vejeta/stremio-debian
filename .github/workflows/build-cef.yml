@@ -1,0 +1,231 @@
+name: Build CEF Packages
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'CEF version to build (e.g., 138.0.1)'
+        required: true
+        type: string
+      force_rebuild:
+        description: 'Force rebuild even if packages exist'
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+
+env:
+  DEBIAN_FRONTEND: noninteractive
+  DEBEMAIL: "vejeta@gmail.com"
+  DEBFULLNAME: "Juan Manuel Mendez Rey"
+
+jobs:
+  build-cef:
+    name: Build CEF - sid amd64
+    # CRITICAL: Must run on self-hosted runner with appropriate resources
+    # Required labels: self-hosted, linux, x64, cef-builder
+    runs-on: [self-hosted, linux, x64, cef-builder]
+    timeout-minutes: 1440  # 24 hours max
+
+    steps:
+      - name: Verify runner capabilities
+        run: |
+          echo "=== Runner Verification ==="
+          echo "Hostname: $(hostname)"
+          echo "CPU cores: $(nproc)"
+          echo "RAM: $(free -h | grep Mem | awk '{print $2}')"
+          echo "Disk space: $(df -h / | tail -1 | awk '{print $4}')"
+
+          # Verify minimum requirements
+          CORES=$(nproc)
+          RAM_GB=$(free -g | grep Mem | awk '{print $2}')
+          DISK_GB=$(df -BG / | tail -1 | awk '{print $4}' | tr -d 'G')
+
+          if [ "$CORES" -lt 4 ]; then
+            echo "ERROR: Need at least 4 CPU cores (have $CORES)"
+            exit 1
+          fi
+
+          if [ "$RAM_GB" -lt 8 ]; then
+            echo "ERROR: Need at least 8GB RAM (have ${RAM_GB}GB)"
+            exit 1
+          fi
+
+          if [ "$DISK_GB" -lt 40 ]; then
+            echo "ERROR: Need at least 40GB disk (have ${DISK_GB}GB)"
+            exit 1
+          fi
+
+          echo "Runner meets requirements"
+
+      - name: Checkout repository with submodules
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Verify CEF submodule
+        run: |
+          if [ ! -d "chromium-embedded-framework/debian" ]; then
+            echo "ERROR: chromium-embedded-framework submodule not properly checked out"
+            exit 1
+          fi
+          echo "CEF submodule verified"
+          ls -la chromium-embedded-framework/
+
+      - name: Configure git
+        run: |
+          git config --global user.email "$DEBEMAIL"
+          git config --global user.name "$DEBFULLNAME"
+          git config --global --add safe.directory '*'
+
+      - name: Build CEF packages
+        working-directory: chromium-embedded-framework
+        run: |
+          # Get version from changelog
+          VERSION=$(dpkg-parsechangelog -S Version)
+          echo "Building CEF version: $VERSION"
+
+          # Export clang-19 as default
+          export CC=clang-19
+          export CXX=clang++-19
+          export PATH="/usr/lib/llvm-19/bin:$PATH"
+
+          # Set TMPDIR to avoid /tmp space issues
+          export TMPDIR="$PWD/tmp"
+          mkdir -p "$TMPDIR"
+
+          # Build packages (this takes HOURS)
+          dpkg-buildpackage -b -us -uc
+
+          # List built packages
+          echo "=== Built packages ==="
+          ls -lh ../*.deb
+
+      - name: Run lintian checks
+        continue-on-error: true
+        run: |
+          lintian --info --display-info --pedantic \
+            chromium-embedded-framework/../*.deb || true
+
+      - name: Collect build artifacts
+        run: |
+          mkdir -p artifacts/cef-sid-amd64
+
+          for deb in chromium-embedded-framework/../*.deb; do
+            if [ -f "$deb" ]; then
+              filename=$(basename "$deb")
+              # Add distro suffix for consistency with other packages
+              newname="${filename%.deb}-sid.deb"
+              mv "$deb" "artifacts/cef-sid-amd64/$newname"
+            fi
+          done
+
+          # Move other artifacts
+          mv chromium-embedded-framework/../*.buildinfo artifacts/cef-sid-amd64/ 2>/dev/null || true
+          mv chromium-embedded-framework/../*.changes artifacts/cef-sid-amd64/ 2>/dev/null || true
+
+          echo "=== Collected artifacts ==="
+          ls -lah artifacts/cef-sid-amd64/
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: cef-packages-sid-amd64
+          path: artifacts/cef-sid-amd64/*.deb
+          retention-days: 90
+
+      - name: Upload all artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: cef-all-sid-amd64
+          path: artifacts/cef-sid-amd64/*
+          retention-days: 90
+
+  create-cef-release:
+    name: Create CEF Release
+    needs: [build-cef]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-artifacts
+
+      - name: Display artifacts
+        run: ls -R release-artifacts
+
+      - name: Create release notes
+        run: |
+          CEF_VERSION="${{ github.event.inputs.version }}"
+          BUILD_DATE="$(date -u +"%Y-%m-%d %H:%M UTC")"
+          WORKFLOW_ID="${GITHUB_RUN_ID}"
+
+          cat > RELEASE_NOTES.md << 'EOF'
+          # Chromium Embedded Framework VERSION_PLACEHOLDER
+
+          ## Packages
+
+          - **libcef138** - CEF runtime library
+          - **libcef138-dbgsym** - Debug symbols
+          - **libcef-dev** - Development headers
+          - **cef-resources** - Required runtime resources (locales, PAK files)
+
+          ## Installation
+
+          These packages are available in the APT repository for Debian sid:
+
+          ```bash
+          wget -qO - https://debian.vejeta.com/key.gpg | sudo gpg --dearmor -o /usr/share/keyrings/stremio-debian.gpg
+          echo "deb [signed-by=/usr/share/keyrings/stremio-debian.gpg] https://debian.vejeta.com sid main non-free" | sudo tee /etc/apt/sources.list.d/stremio.list
+          sudo apt update
+          sudo apt install libcef138 cef-resources
+          ```
+
+          ## Build Information
+
+          - Built on: DATE_PLACEHOLDER
+          - Distribution: Debian sid (unstable)
+          - Architecture: amd64 only
+          - Build runner: Self-hosted (high-memory)
+          - Workflow: WORKFLOW_PLACEHOLDER
+
+          ## Note
+
+          CEF packages are only available for Debian sid due to clang-19 requirements.
+          These packages are required by stremio-gtk.
+
+          ## License
+
+          CEF contains proprietary components and is distributed in the `non-free` component.
+          EOF
+
+          # Replace placeholders
+          sed -i "s/VERSION_PLACEHOLDER/$CEF_VERSION/g" RELEASE_NOTES.md
+          sed -i "s/DATE_PLACEHOLDER/$BUILD_DATE/g" RELEASE_NOTES.md
+          sed -i "s/WORKFLOW_PLACEHOLDER/$WORKFLOW_ID/g" RELEASE_NOTES.md
+
+          cat RELEASE_NOTES.md
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: cef-${{ github.event.inputs.version }}
+          name: CEF ${{ github.event.inputs.version }}
+          body_path: RELEASE_NOTES.md
+          draft: false
+          prerelease: false
+          files: |
+            release-artifacts/cef-packages-*/*.deb
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Trigger repository update
+        uses: peter-evans/repository-dispatch@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          event-type: cef-packages-updated
+          client-payload: '{"version": "${{ github.event.inputs.version }}"}'

@@ -2,7 +2,7 @@ name: Deploy APT Repository to GitHub Pages
 
 on:
   repository_dispatch:
-    types: [packages-updated]
+    types: [packages-updated, cef-packages-updated]
   workflow_dispatch:
     inputs:
       force_rebuild:
@@ -80,7 +80,11 @@ jobs:
                 clean_filename="${filename%-${distro}.deb}.deb"
 
                 # Determine component (main or non-free)
-                if [[ "$filename" =~ ^stremio-server ]]; then
+                # non-free: stremio-server, libcef*, cef-resources
+                # main: stremio, stremio-gtk
+                if [[ "$filename" =~ ^stremio-server ]] || \
+                   [[ "$filename" =~ ^libcef ]] || \
+                   [[ "$filename" =~ ^cef-resources ]]; then
                   component="non-free"
                 else
                   component="main"
@@ -107,6 +111,47 @@ jobs:
             done
           else
             echo "No releases found, creating empty repository structure"
+          fi
+
+      - name: Download CEF packages from separate releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Find latest CEF release (tag format: cef-X.X.X)
+          CEF_TAG=$(gh release list --limit 20 | grep "^CEF" | head -1 | awk '{print $1}' | sed 's/CEF/cef-/')
+
+          # Alternative: search by tag pattern
+          if [ -z "$CEF_TAG" ]; then
+            CEF_TAG=$(gh release list --limit 20 --json tagName -q '.[].tagName' | grep "^cef-" | head -1)
+          fi
+
+          if [ -n "$CEF_TAG" ]; then
+            echo "Downloading CEF packages from release: $CEF_TAG"
+            mkdir -p temp-cef-downloads
+            gh release download "$CEF_TAG" --pattern "*.deb" --dir temp-cef-downloads/ || true
+
+            # Move CEF packages to sid/non-free (CEF only supports sid)
+            for deb in temp-cef-downloads/*.deb; do
+              if [ -f "$deb" ]; then
+                filename=$(basename "$deb")
+                echo "Processing CEF package: $filename"
+
+                # Remove -sid suffix if present to get clean filename
+                clean_filename="${filename%-sid.deb}.deb"
+                if [ "$clean_filename" = "$filename" ]; then
+                  clean_filename="$filename"
+                fi
+
+                # CEF packages go to non-free
+                cp "$deb" "packages/sid/non-free/$clean_filename"
+                echo "  -> packages/sid/non-free/$clean_filename"
+              fi
+            done
+
+            echo "=== CEF packages added to sid/non-free ==="
+            ls -lh packages/sid/non-free/ 2>/dev/null || echo "(empty)"
+          else
+            echo "No CEF releases found (this is OK if CEF hasn't been built yet)"
           fi
 
       - name: Import GPG key
