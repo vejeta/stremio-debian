@@ -81,6 +81,16 @@ jobs:
           git config --global user.name "$DEBFULLNAME"
           git config --global --add safe.directory '*'
 
+      - name: Clone depot_tools
+        run: |
+          # CEF build requires Google's depot_tools
+          cd chromium-embedded-framework
+          if [ ! -d "depot_tools" ]; then
+            echo "=== Cloning depot_tools ==="
+            git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git depot_tools
+          fi
+          echo "depot_tools ready at: $(pwd)/depot_tools"
+
       - name: Download Chromium source tarballs
         run: |
           # CEF build requires Debian's Chromium source tarballs
