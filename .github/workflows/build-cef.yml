@@ -81,6 +81,37 @@ jobs:
           git config --global user.name "$DEBFULLNAME"
           git config --global --add safe.directory '*'
 
+      - name: Download Chromium source tarballs
+        run: |
+          # CEF build requires Debian's Chromium source tarballs
+          # These must be in the parent directory of chromium-embedded-framework
+
+          # Get the Chromium version from CEF's debian/rules
+          CHROMIUM_VERSION=$(grep -oP 'chromium_\K[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' chromium-embedded-framework/debian/rules | head -1)
+          echo "Chromium version needed: $CHROMIUM_VERSION"
+
+          # Download from Debian archive
+          DEBIAN_POOL="https://deb.debian.org/debian/pool/main/c/chromium"
+
+          echo "=== Downloading Chromium orig tarball ==="
+          wget -q --show-progress -O "chromium_${CHROMIUM_VERSION}.orig.tar.xz" \
+            "${DEBIAN_POOL}/chromium_${CHROMIUM_VERSION}.orig.tar.xz"
+
+          echo "=== Downloading Chromium debian tarball ==="
+          # Find the latest debian revision
+          DEBIAN_TAR=$(wget -qO- "${DEBIAN_POOL}/" | grep -oP "chromium_${CHROMIUM_VERSION}-[0-9]+\.debian\.tar\.xz" | sort -V | tail -1)
+          echo "Found debian tarball: $DEBIAN_TAR"
+          wget -q --show-progress -O "$DEBIAN_TAR" \
+            "${DEBIAN_POOL}/${DEBIAN_TAR}"
+
+          # Rename to expected name (debian/rules expects -1.debian.tar.xz)
+          if [ "$DEBIAN_TAR" != "chromium_${CHROMIUM_VERSION}-1.debian.tar.xz" ]; then
+            mv "$DEBIAN_TAR" "chromium_${CHROMIUM_VERSION}-1.debian.tar.xz"
+          fi
+
+          echo "=== Downloaded files ==="
+          ls -lh chromium_*.tar.xz
+
       - name: Build CEF packages
         working-directory: chromium-embedded-framework
         run: |
