@@ -30,13 +30,13 @@ NC='\033[0m' # No Color
 # Function to report errors
 report_error() {
     echo -e "${RED}❌ ERROR: $1${NC}"
-    ((VALIDATION_ERRORS++))
+    VALIDATION_ERRORS=$((VALIDATION_ERRORS + 1))
 }
 
 # Function to report warnings
 report_warning() {
     echo -e "${YELLOW}⚠️  WARNING: $1${NC}"
-    ((VALIDATION_WARNINGS++))
+    VALIDATION_WARNINGS=$((VALIDATION_WARNINGS + 1))
 }
 
 # Function to report success
