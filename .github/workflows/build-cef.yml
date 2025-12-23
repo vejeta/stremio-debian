@@ -122,6 +122,20 @@ jobs:
           echo "=== Downloaded files ==="
           ls -lh chromium_*.tar.xz
 
+      - name: Download Rust toolchain
+        run: |
+          # CEF build requires Chromium's custom Rust toolchain
+          # Download from build-deps release
+          echo "=== Downloading Rust toolchain ==="
+          gh release download build-deps --pattern "rust-toolchain.tar.xz" --dir . || {
+            echo "ERROR: rust-toolchain.tar.xz not found in build-deps release"
+            echo "Please create a 'build-deps' release with rust-toolchain.tar.xz"
+            exit 1
+          }
+          ls -lh rust-toolchain.tar.xz
+        env:
+          GH_TOKEN: ${{ github.token }}
+
       - name: Build CEF packages
         working-directory: chromium-embedded-framework
         run: |
