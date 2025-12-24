@@ -39,14 +39,14 @@ jobs:
 
       - name: Setup sync directories
         run: |
-          mkdir -p sync-temp/stremio-client
+          mkdir -p sync-temp/stremio-qt5
           mkdir -p sync-temp/stremio-server
 
-      - name: Clone stremio-client from Salsa
+      - name: Clone stremio-qt5 from Salsa
         run: |
-          echo "=== Cloning stremio-client from Salsa ==="
-          git clone --bare "$SALSA_STREMIO_REPO" sync-temp/stremio-client.git
-          cd sync-temp/stremio-client.git
+          echo "=== Cloning stremio-qt5 from Salsa ==="
+          git clone --bare "$SALSA_STREMIO_REPO" sync-temp/stremio-qt5.git
+          cd sync-temp/stremio-qt5.git
           LATEST_SALSA_COMMIT=$(git rev-parse HEAD)
           echo "LATEST_SALSA_CLIENT_COMMIT=$LATEST_SALSA_COMMIT" >> $GITHUB_ENV
           echo "Latest Salsa commit: $LATEST_SALSA_COMMIT"
@@ -82,12 +82,12 @@ jobs:
           echo "Latest Salsa commit: $LATEST_SALSA_COMMIT"
           cd ../..
 
-      - name: Check if stremio-client needs update
+      - name: Check if stremio-qt5 needs update
         id: check_client
         run: |
-          # Check if stremio-client subdirectory exists
-          if [ -d "stremio-client/.git" ]; then
-            cd stremio-client
+          # Check if stremio-qt5 subdirectory exists
+          if [ -d "stremio-qt5/.git" ]; then
+            cd stremio-qt5
             CURRENT_COMMIT=$(git rev-parse HEAD)
             echo "CURRENT_CLIENT_COMMIT=$CURRENT_COMMIT" >> $GITHUB_ENV
             echo "Current commit: $CURRENT_COMMIT"
@@ -175,18 +175,18 @@ jobs:
             echo "stremio-gtk directory doesn't exist, needs initial sync"
           fi
 
-      - name: Sync stremio-client
+      - name: Sync stremio-qt5
         if: steps.check_client.outputs.needs_update == 'true'
         run: |
-          echo "=== Syncing stremio-client ==="
+          echo "=== Syncing stremio-qt5 ==="
 
           # Remove existing directory if it exists
-          rm -rf stremio-client
+          rm -rf stremio-qt5
 
           # Clone fresh from Salsa
-          git clone "$SALSA_STREMIO_REPO" stremio-client
+          git clone "$SALSA_STREMIO_REPO" stremio-qt5
 
-          echo "✓ stremio-client synced successfully"
+          echo "✓ stremio-qt5 synced successfully"
 
       - name: Sync stremio-server
         if: steps.check_server.outputs.needs_update == 'true'
@@ -231,7 +231,7 @@ jobs:
         if: steps.check_client.outputs.needs_update == 'true' || steps.check_server.outputs.needs_update == 'true' || steps.check_cef.outputs.needs_update == 'true' || steps.check_gtk.outputs.needs_update == 'true'
         run: |
           # Add changes
-          git add stremio-client stremio-server chromium-embedded-framework stremio-gtk
+          git add stremio-qt5 stremio-server chromium-embedded-framework stremio-gtk
 
           # Check if there are actually changes to commit
           if git diff --cached --quiet; then
@@ -250,7 +250,7 @@ jobs:
           EOF
 
           if [ "${{ steps.check_client.outputs.needs_update }}" == "true" ]; then
-            echo "- stremio-client: ${CURRENT_CLIENT_COMMIT:0:8} → ${LATEST_SALSA_CLIENT_COMMIT:0:8}" >> commit-msg.txt
+            echo "- stremio-qt5: ${CURRENT_CLIENT_COMMIT:0:8} → ${LATEST_SALSA_CLIENT_COMMIT:0:8}" >> commit-msg.txt
           fi
 
           if [ "${{ steps.check_server.outputs.needs_update }}" == "true" ]; then
@@ -306,7 +306,7 @@ jobs:
             echo "✓ Updates found and synced"
             echo ""
             echo "Updated components:"
-            [ "${{ steps.check_client.outputs.needs_update }}" == "true" ] && echo "  - stremio-client"
+            [ "${{ steps.check_client.outputs.needs_update }}" == "true" ] && echo "  - stremio-qt5"
             [ "${{ steps.check_server.outputs.needs_update }}" == "true" ] && echo "  - stremio-server"
             [ "${{ steps.check_cef.outputs.needs_update }}" == "true" ] && echo "  - chromium-embedded-framework"
             [ "${{ steps.check_gtk.outputs.needs_update }}" == "true" ] && echo "  - stremio-gtk"

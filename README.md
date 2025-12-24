@@ -263,8 +263,8 @@ git push origin v4.4.170-1
 git clone --recursive https://github.com/vejeta/stremio-debian.git
 cd stremio-debian
 
-# Build stremio client
-cd stremio-client
+# Build stremio client (Qt5)
+cd stremio-qt5
 QT_DEFAULT_MAJOR_VERSION=5 dpkg-buildpackage -us -uc
 
 # Build stremio-server
