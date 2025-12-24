@@ -158,6 +158,12 @@ jobs:
       - name: Create release notes
         run: |
           GTK_VERSION="${{ github.event.inputs.version }}"
+          # Sanitize version for GitHub tag (~ and + are not allowed)
+          # 1.0.0~beta.12+ds-1 -> 1.0.0-beta.12.ds-1
+          GTK_TAG_VERSION=$(echo "$GTK_VERSION" | sed 's/~/-/g; s/+/./g')
+          echo "GTK_TAG_VERSION=$GTK_TAG_VERSION" >> $GITHUB_ENV
+          echo "Original version: $GTK_VERSION"
+          echo "Tag version: $GTK_TAG_VERSION"
           BUILD_DATE="$(date -u +"%Y-%m-%d %H:%M UTC")"
           WORKFLOW_ID="${GITHUB_RUN_ID}"
 
@@ -223,7 +229,7 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: gtk-${{ github.event.inputs.version }}
+          tag_name: gtk-${{ env.GTK_TAG_VERSION }}
           name: stremio-gtk ${{ github.event.inputs.version }}
           body_path: RELEASE_NOTES.md
           draft: false
