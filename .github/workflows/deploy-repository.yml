@@ -48,9 +48,9 @@ jobs:
           # Create directory structure for each distribution
           mkdir -p packages/{testing,trixie,bookworm,sid,noble}/{main,non-free}
 
-          # Download latest release assets
-          gh release list --limit 1 --json tagName,name | jq -r '.[0].tagName' > latest_tag.txt
-          LATEST_TAG=$(cat latest_tag.txt)
+          # Download from latest v* release (stremio-qt5 and stremio-server)
+          # Note: We specifically look for v* tags, not "Latest" which could be gtk-* or cef-*
+          LATEST_TAG=$(gh release list --limit 20 --json tagName -q '.[].tagName' | grep "^v" | head -1)
 
           if [ -n "$LATEST_TAG" ]; then
             echo "Downloading packages from release: $LATEST_TAG"
