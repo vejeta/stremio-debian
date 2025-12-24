@@ -1,5 +1,5 @@
-[submodule "stremio-client"]
-	path = stremio-client
+[submodule "stremio-qt5"]
+	path = stremio-qt5
 	url = https://salsa.debian.org/mendezr/stremio.git
 [submodule "stremio-server"]
 	path = stremio-server
