@@ -131,8 +131,9 @@ This repository uses **separate releases** for different package groups:
 |-------------|----------|---------|
 | `v*` (e.g., v5.0.0) | stremio, stremio-server | Tag push |
 | `cef-*` (e.g., cef-138.0.1) | libcef138, cef-resources, libcef-dev | Manual |
+| `gtk-*` (e.g., gtk-1.0.0-beta.12) | stremio-gtk | Manual |
 
-**Why separate?** Each package group has different version schemes, build times, and release cadences. CEF follows Chromium versions and takes hours to build, while stremio follows its own versioning and builds in minutes.
+**Why separate?** Each package group has different version schemes, build times, and release cadences. CEF follows Chromium versions and takes hours to build. stremio-gtk follows its own beta versioning independently of the Qt5 client.
 
 **For users**: The APT repository at `debian.vejeta.com` combines all packages automatically. Just `apt install` what you need - no need to track individual releases.
 

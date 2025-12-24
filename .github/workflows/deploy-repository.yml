@@ -2,7 +2,7 @@ name: Deploy APT Repository to GitHub Pages
 
 on:
   repository_dispatch:
-    types: [packages-updated, cef-packages-updated]
+    types: [packages-updated, cef-packages-updated, gtk-packages-updated]
   workflow_dispatch:
     inputs:
       force_rebuild:
@@ -152,6 +152,42 @@ jobs:
             ls -lh packages/sid/non-free/ 2>/dev/null || echo "(empty)"
           else
             echo "No CEF releases found (this is OK if CEF hasn't been built yet)"
+          fi
+
+      - name: Download stremio-gtk packages from separate releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Find latest stremio-gtk release (tag format: gtk-X.X.X)
+          GTK_TAG=$(gh release list --limit 20 --json tagName -q '.[].tagName' | grep "^gtk-" | head -1)
+
+          if [ -n "$GTK_TAG" ]; then
+            echo "Downloading stremio-gtk packages from release: $GTK_TAG"
+            mkdir -p temp-gtk-downloads
+            gh release download "$GTK_TAG" --pattern "*.deb" --dir temp-gtk-downloads/ || true
+
+            # Move stremio-gtk packages to sid/main (stremio-gtk is GPL, goes to main)
+            for deb in temp-gtk-downloads/*.deb; do
+              if [ -f "$deb" ]; then
+                filename=$(basename "$deb")
+                echo "Processing stremio-gtk package: $filename"
+
+                # Remove -sid suffix if present to get clean filename
+                clean_filename="${filename%-sid.deb}.deb"
+                if [ "$clean_filename" = "$filename" ]; then
+                  clean_filename="$filename"
+                fi
+
+                # stremio-gtk packages go to main (GPL-3.0+)
+                cp "$deb" "packages/sid/main/$clean_filename"
+                echo "  -> packages/sid/main/$clean_filename"
+              fi
+            done
+
+            echo "=== stremio-gtk packages added to sid/main ==="
+            ls -lh packages/sid/main/ 2>/dev/null || echo "(empty)"
+          else
+            echo "No stremio-gtk releases found (this is OK if stremio-gtk hasn't been built yet)"
           fi
 
       - name: Import GPG key
@@ -352,12 +388,19 @@ jobs:
 
               <div class="info">
                   <strong>📦 Official Debian Submission Status:</strong><br>
-                  This package is currently being submitted to official Debian as
-                  <a href="https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=943703">ITP #943703</a>
-                  and is under Debian Developer review. This repository provides early access to
-                  official-quality packages while the Debian inclusion process is ongoing.
-                  The maintainer (<a href="mailto:vejeta@gmail.com">Juan Manuel Méndez Rey</a>)
-                  is the same for both this repository and the official Debian submission.
+                  <p>These packages are being submitted to official Debian:</p>
+                  <ul>
+                      <li><strong>stremio</strong> (Qt5): <a href="https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=943703">ITP #943703</a></li>
+                      <li><strong>chromium-embedded-framework</strong>: <a href="https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=915400">ITP #915400</a></li>
+                      <li><strong>stremio-gtk</strong>: <a href="https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=1119815">ITP #1119815</a></li>
+                  </ul>
+                  <p>The maintainer (<a href="mailto:vejeta@gmail.com">Juan Manuel Méndez Rey</a>) is the same for both this repository and the official Debian submissions.</p>
+              </div>
+
+              <div class="warning">
+                  <strong>⚠️ Qt5 End-of-Life Notice:</strong><br>
+                  <p>The original <strong>stremio</strong> client uses Qt5/QtWebEngine, but <strong>Qt5 has reached End-of-Life</strong> and is being removed from Debian. Since QtWebEngine is not available for Qt6, a new client (<strong>stremio-gtk</strong>) was developed using GTK4/Adwaita with CEF (Chromium Embedded Framework).</p>
+                  <p><strong>stremio-gtk</strong> is the forward-compatible client that will continue to work as Qt5 is phased out. It is currently available for Debian sid only.</p>
               </div>
 
               <h2>Quick Installation</h2>
@@ -401,9 +444,39 @@ jobs:
 
               <h2>Available Packages</h2>
 
+              <h3>Main Component (Free/Open Source)</h3>
               <ul>
-                  <li><strong>stremio</strong> (main/free): Desktop client with Qt5/QML interface (amd64, arm64)</li>
-                  <li><strong>stremio-server</strong> (non-free): BitTorrent streaming server (all architectures)</li>
+                  <li><strong>stremio</strong>: Qt5/QML desktop client (amd64, arm64) - all distributions</li>
+                  <li><strong>stremio-gtk</strong>: GTK4/Adwaita desktop client (amd64) - <strong>Debian sid only</strong></li>
+              </ul>
+
+              <h3>Non-Free Component (Proprietary)</h3>
+              <ul>
+                  <li><strong>stremio-server</strong>: BitTorrent streaming server (all architectures) - all distributions</li>
+                  <li><strong>libcef138</strong>: CEF runtime library (amd64) - <strong>Debian sid only</strong></li>
+                  <li><strong>libcef-dev</strong>: CEF development headers (amd64) - <strong>Debian sid only</strong></li>
+                  <li><strong>cef-resources</strong>: CEF runtime resources (all) - <strong>Debian sid only</strong></li>
+              </ul>
+
+              <h2>stremio-gtk Installation (Debian sid only)</h2>
+
+              <p><strong>stremio-gtk</strong> is a modern GTK4/Adwaita-based client that uses CEF (Chromium Embedded Framework). It is the successor to the Qt5-based client for systems where Qt5/QtWebEngine is no longer available.</p>
+
+              <div class="info">
+                  <strong>Requirements:</strong> Debian sid (unstable) with amd64 architecture.
+              </div>
+
+              <pre>sudo apt update
+          sudo apt install stremio-gtk stremio-server</pre>
+
+              <p>CEF packages (libcef138, cef-resources) are installed automatically as dependencies.</p>
+
+              <h3>Why use stremio-gtk?</h3>
+              <ul>
+                  <li>Modern GTK4/Adwaita interface following GNOME HIG</li>
+                  <li>Uses CEF (Chromium Embedded Framework) - actively maintained</li>
+                  <li>Future-proof: works as Qt5/QtWebEngine are phased out</li>
+                  <li>Native Wayland support</li>
               </ul>
 
               <h2>Supported Architectures</h2>
@@ -419,11 +492,16 @@ jobs:
 
               <h2>Source Code</h2>
 
+              <p>All Debian packaging source is maintained on Salsa Debian GitLab:</p>
+
               <ul>
-                  <li><a href="https://salsa.debian.org/mendezr/stremio">stremio (main)</a> - Salsa GitLab</li>
-                  <li><a href="https://salsa.debian.org/mendezr/stremio-server">stremio-server (non-free)</a> - Salsa GitLab</li>
-                  <li><a href="https://github.com/vejeta/stremio-debian">Build system</a> - GitHub</li>
+                  <li><a href="https://salsa.debian.org/mendezr/stremio">stremio</a> - Qt5 client (GPL-3.0+)</li>
+                  <li><a href="https://salsa.debian.org/mendezr/stremio-server">stremio-server</a> - Streaming server (Proprietary)</li>
+                  <li><a href="https://salsa.debian.org/mendezr/stremio-gtk">stremio-gtk</a> - GTK4 client (GPL-3.0+)</li>
+                  <li><a href="https://salsa.debian.org/mendezr/chromium-embedded-framework">chromium-embedded-framework</a> - CEF (Mixed)</li>
               </ul>
+
+              <p>Build infrastructure: <a href="https://github.com/vejeta/stremio-debian">github.com/vejeta/stremio-debian</a></p>
 
               <h2>Support</h2>
 
