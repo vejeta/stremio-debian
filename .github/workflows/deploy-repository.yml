@@ -479,6 +479,31 @@ jobs:
                   <li>Native Wayland support</li>
               </ul>
 
+              <h2>CEF Packages Installation (Debian sid only)</h2>
+
+              <p>The <strong>Chromium Embedded Framework (CEF)</strong> packages are available for developers and users who want to try them while the package is being reviewed for inclusion in Debian experimental (<a href="https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=915400">ITP #915400</a>).</p>
+
+              <h3>Available CEF Packages</h3>
+              <ul>
+                  <li><strong>libcef138</strong> - CEF runtime library (required for applications using CEF)</li>
+                  <li><strong>cef-resources</strong> - Runtime resources: locales, PAK files, and other assets</li>
+                  <li><strong>libcef-dev</strong> - Development headers for building applications against CEF</li>
+              </ul>
+
+              <h3>Installation</h3>
+
+              <p><strong>For running CEF-based applications (e.g., stremio-gtk):</strong></p>
+              <pre>sudo apt update
+          sudo apt install libcef138 cef-resources</pre>
+
+              <p><strong>For development (building against CEF):</strong></p>
+              <pre>sudo apt update
+          sudo apt install libcef-dev cef-resources</pre>
+
+              <div class="info">
+                  <strong>Note:</strong> CEF packages are only available for Debian sid (unstable) on amd64 architecture due to clang-19 build requirements. These packages are installed automatically when you install stremio-gtk.
+              </div>
+
               <h2>Supported Architectures</h2>
 
               <ul>
