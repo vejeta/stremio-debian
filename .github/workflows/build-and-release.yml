@@ -405,7 +405,8 @@ jobs:
               git fetch origin pristine-tar:pristine-tar upstream:upstream
 
               # Build with gbp (handles orig tarball automatically)
-              gbp buildpackage --git-pristine-tar --git-upstream-branch=upstream -us -uc
+              # --git-ignore-branch needed because submodule is in detached HEAD state
+              gbp buildpackage --git-ignore-branch --git-pristine-tar --git-upstream-branch=upstream -us -uc
 
               # Lintian check
               echo "=== Running lintian checks ==="
