@@ -111,6 +111,12 @@ jobs:
               # Create upstream tarball
               cd stremio-qt5
 
+              # Sync to latest Salsa (source of truth)
+              echo "=== Syncing stremio-qt5 to latest Salsa ==="
+              git fetch origin
+              git checkout origin/master
+              echo "Synced to: $(git log -1 --oneline)"
+
               # Fetch pristine-tar and upstream branches for orig tarball
               echo "=== Fetching pristine-tar and upstream branches ==="
               git fetch origin pristine-tar:pristine-tar upstream:upstream || true
@@ -275,6 +281,14 @@ jobs:
           git config --global user.email "$DEBEMAIL"
           git config --global user.name "$DEBFULLNAME"
           git config --global --add safe.directory '*'
+
+      - name: Sync stremio-server to latest Salsa
+        working-directory: stremio-server
+        run: |
+          echo "=== Syncing stremio-server to latest Salsa ==="
+          git fetch origin
+          git checkout origin/master
+          echo "Synced to: $(git log -1 --oneline)"
 
       - name: Build binary package
         working-directory: stremio-server

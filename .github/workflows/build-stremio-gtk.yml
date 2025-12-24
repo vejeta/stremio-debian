@@ -83,6 +83,12 @@ jobs:
 
               cd stremio-gtk
 
+              # Sync to latest Salsa (source of truth)
+              echo "=== Syncing stremio-gtk to latest Salsa ==="
+              git fetch origin
+              git checkout origin/master
+              echo "Synced to: $(git log -1 --oneline)"
+
               # Get version from changelog
               VERSION=$(dpkg-parsechangelog -S Version)
               echo "Building stremio-gtk version: $VERSION"
