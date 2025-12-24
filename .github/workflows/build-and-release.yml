@@ -406,7 +406,8 @@ jobs:
 
               # Build with gbp (handles orig tarball automatically)
               # --git-ignore-branch needed because submodule is in detached HEAD state
-              gbp buildpackage --git-ignore-branch --git-pristine-tar --git-upstream-branch=upstream -us -uc
+              # -b to build binary only (avoid dpkg-source issues with vendor binaries)
+              gbp buildpackage --git-ignore-branch --git-pristine-tar --git-upstream-branch=upstream -us -uc -b
 
               # Lintian check
               echo "=== Running lintian checks ==="
