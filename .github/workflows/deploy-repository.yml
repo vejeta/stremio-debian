@@ -118,12 +118,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           # Find latest CEF release (tag format: cef-X.X.X)
-          CEF_TAG=$(gh release list --limit 20 | grep "^CEF" | head -1 | awk '{print $1}' | sed 's/CEF/cef-/')
-
-          # Alternative: search by tag pattern
-          if [ -z "$CEF_TAG" ]; then
-            CEF_TAG=$(gh release list --limit 20 --json tagName -q '.[].tagName' | grep "^cef-" | head -1)
-          fi
+          CEF_TAG=$(gh release list --limit 20 --json tagName -q '.[].tagName' | grep "^cef-" | head -1)
 
           if [ -n "$CEF_TAG" ]; then
             echo "Downloading CEF packages from release: $CEF_TAG"
