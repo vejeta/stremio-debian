@@ -255,7 +255,7 @@ jobs:
 
           ## License
 
-          CEF contains proprietary components and is distributed in the `non-free` component.
+          CEF is distributed in the `main` component (BSD-licensed core with some bundled components).
           EOF
 
           # Replace placeholders
