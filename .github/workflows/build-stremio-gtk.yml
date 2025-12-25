@@ -91,11 +91,20 @@ jobs:
 
               # Get version from changelog
               VERSION=$(dpkg-parsechangelog -S Version)
-              echo "Building stremio-gtk version: $VERSION"
+              UPSTREAM_VERSION=$(echo "$VERSION" | cut -d- -f1)
+              echo "Building stremio-gtk version: $VERSION (upstream: $UPSTREAM_VERSION)"
 
               # Fetch pristine-tar and upstream branches for orig tarball
               echo "=== Fetching pristine-tar and upstream branches ==="
               git fetch origin pristine-tar:pristine-tar upstream:upstream
+
+              # Extract vendor/ from pristine-tar tarball
+              # vendor/ is NOT in git - it's only in the +ds orig tarball
+              echo "=== Extracting vendor/ from pristine-tar tarball ==="
+              pristine-tar checkout ../stremio-gtk_${UPSTREAM_VERSION}.orig.tar.gz
+              tar -xzf ../stremio-gtk_${UPSTREAM_VERSION}.orig.tar.gz --strip-components=1 --wildcards "*/vendor"
+              echo "Vendor directory extracted: $(ls -d vendor 2>/dev/null && echo 'OK' || echo 'MISSING')"
+              echo "Vendor crates: $(ls vendor 2>/dev/null | wc -l)"
 
               # Build with gbp (handles orig tarball automatically)
               # --git-ignore-branch needed because submodule is in detached HEAD state
