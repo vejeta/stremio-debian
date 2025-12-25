@@ -99,11 +99,15 @@ jobs:
               git fetch origin pristine-tar:pristine-tar upstream:upstream
 
               # Extract vendor/ from pristine-tar tarball
-              # vendor/ is NOT in git - it's only in the +ds orig tarball
+              # vendor/ is NOT in git - it is only in the +ds orig tarball
               echo "=== Extracting vendor/ from pristine-tar tarball ==="
-              pristine-tar checkout ../stremio-gtk_${UPSTREAM_VERSION}.orig.tar.gz
-              tar -xzf ../stremio-gtk_${UPSTREAM_VERSION}.orig.tar.gz --strip-components=1 --wildcards "*/vendor"
-              echo "Vendor directory extracted: $(ls -d vendor 2>/dev/null && echo 'OK' || echo 'MISSING')"
+              echo "PATH: $PATH"
+              which pristine-tar || echo "pristine-tar not in PATH"
+              ORIG_TARBALL="../stremio-gtk_${UPSTREAM_VERSION}.orig.tar.gz"
+              echo "Extracting: $ORIG_TARBALL"
+              /usr/bin/pristine-tar checkout "$ORIG_TARBALL"
+              tar -xzf "$ORIG_TARBALL" --strip-components=1 --wildcards "*/vendor"
+              echo "Vendor directory extracted: $(ls -d vendor 2>/dev/null && echo OK || echo MISSING)"
               echo "Vendor crates: $(ls vendor 2>/dev/null | wc -l)"
 
               # Build with gbp (handles orig tarball automatically)
