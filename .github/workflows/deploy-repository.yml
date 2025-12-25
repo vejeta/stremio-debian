@@ -80,11 +80,9 @@ jobs:
                 clean_filename="${filename%-${distro}.deb}.deb"
 
                 # Determine component (main or non-free)
-                # non-free: stremio-server, libcef*, cef-resources
-                # main: stremio, stremio-gtk
-                if [[ "$filename" =~ ^stremio-server ]] || \
-                   [[ "$filename" =~ ^libcef ]] || \
-                   [[ "$filename" =~ ^cef-resources ]]; then
+                # non-free: stremio-server only
+                # main: stremio, stremio-gtk, libcef*, cef-resources
+                if [[ "$filename" =~ ^stremio-server ]]; then
                   component="non-free"
                 else
                   component="main"
@@ -125,7 +123,7 @@ jobs:
             mkdir -p temp-cef-downloads
             gh release download "$CEF_TAG" --pattern "*.deb" --dir temp-cef-downloads/ || true
 
-            # Move CEF packages to sid/non-free (CEF only supports sid)
+            # Move CEF packages to sid/main (CEF only supports sid)
             for deb in temp-cef-downloads/*.deb; do
               if [ -f "$deb" ]; then
                 filename=$(basename "$deb")
@@ -137,14 +135,14 @@ jobs:
                   clean_filename="$filename"
                 fi
 
-                # CEF packages go to non-free
-                cp "$deb" "packages/sid/non-free/$clean_filename"
-                echo "  -> packages/sid/non-free/$clean_filename"
+                # CEF packages go to main
+                cp "$deb" "packages/sid/main/$clean_filename"
+                echo "  -> packages/sid/main/$clean_filename"
               fi
             done
 
-            echo "=== CEF packages added to sid/non-free ==="
-            ls -lh packages/sid/non-free/ 2>/dev/null || echo "(empty)"
+            echo "=== CEF packages added to sid/main ==="
+            ls -lh packages/sid/main/ 2>/dev/null || echo "(empty)"
           else
             echo "No CEF releases found (this is OK if CEF hasn't been built yet)"
           fi
@@ -443,14 +441,14 @@ jobs:
               <ul>
                   <li><strong>stremio</strong>: Qt5/QML desktop client (amd64, arm64) - all distributions</li>
                   <li><strong>stremio-gtk</strong>: GTK4/Adwaita desktop client (amd64) - <strong>Debian sid only</strong></li>
+                  <li><strong>libcef138</strong>: CEF runtime library (amd64) - <strong>Debian sid only</strong></li>
+                  <li><strong>libcef-dev</strong>: CEF development headers (amd64) - <strong>Debian sid only</strong></li>
+                  <li><strong>cef-resources</strong>: CEF runtime resources (all) - <strong>Debian sid only</strong></li>
               </ul>
 
               <h3>Non-Free Component (Proprietary)</h3>
               <ul>
                   <li><strong>stremio-server</strong>: BitTorrent streaming server (all architectures) - all distributions</li>
-                  <li><strong>libcef138</strong>: CEF runtime library (amd64) - <strong>Debian sid only</strong></li>
-                  <li><strong>libcef-dev</strong>: CEF development headers (amd64) - <strong>Debian sid only</strong></li>
-                  <li><strong>cef-resources</strong>: CEF runtime resources (all) - <strong>Debian sid only</strong></li>
               </ul>
 
               <h2>stremio-gtk Installation (Debian sid only)</h2>
