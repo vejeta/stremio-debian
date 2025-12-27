@@ -230,7 +230,7 @@ jobs:
 
           ## License
 
-          stremio-gtk is licensed under GPL-3.0+ and is distributed in the `main` component.
+          stremio-gtk is licensed under GPL-3.0-only and is distributed in the `main` component.
           EOF
 
           # Replace placeholders
