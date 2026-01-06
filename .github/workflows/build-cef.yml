@@ -84,7 +84,7 @@ jobs:
       - name: Obtain MUT tarballs
         run: |
           # Use the get-orig-tarballs.sh script to create properly named MUT tarballs
-          # Run from parent directory of the package (current directory)
+          # See debian/README.source for details on MUT format
           VERSION="${{ github.event.inputs.version }}"
           CEF_BRANCH="7499"  # Branch for CEF 138.x
 
@@ -92,6 +92,7 @@ jobs:
 
           # Run the script from within the package directory
           cd chromium-embedded-framework
+          chmod +x debian/scripts/get-orig-tarballs.sh
           ./debian/scripts/get-orig-tarballs.sh "$VERSION" "$CEF_BRANCH"
           cd ..
 
@@ -122,12 +123,51 @@ jobs:
           echo "=== Debian patches tarball ready ==="
           ls -lh chromium_*.debian.tar.xz
 
-      - name: Build CEF packages
-        working-directory: chromium-embedded-framework
+      - name: Extract MUT source package
         run: |
+          # MUT tarballs are extracted by dpkg-source -x
+          # This creates the proper directory structure:
+          #   chromium-embedded-framework-VERSION/
+          #   ├── cef/           <- from orig.tar.xz
+          #   ├── chromium/      <- from orig-chromium.tar.xz
+          #   ├── depot-tools/   <- from orig-depot-tools.tar.xz
+          #   └── debian/        <- from source
+
+          PKG="chromium-embedded-framework"
+          VERSION="${{ github.event.inputs.version }}"
+
+          # Create a minimal .dsc for dpkg-source extraction
+          # (We have the tarballs but no .dsc from archive yet)
+          cat > ${PKG}_${VERSION}.dsc << EOF
+          Format: 3.0 (quilt)
+          Source: ${PKG}
+          Version: ${VERSION}-1
+          Files:
+           00000000000000000000000000000000 0 ${PKG}_${VERSION}.orig.tar.xz
+           00000000000000000000000000000000 0 ${PKG}_${VERSION}.orig-chromium.tar.xz
+           00000000000000000000000000000000 0 ${PKG}_${VERSION}.orig-depot-tools.tar.xz
+          EOF
+
+          # Extract using dpkg-source (handles MUT automatically)
+          dpkg-source --no-check -x ${PKG}_${VERSION}.dsc
+
+          # Copy our debian/ directory (with latest changes from submodule)
+          rm -rf ${PKG}-${VERSION}/debian
+          cp -a chromium-embedded-framework/debian ${PKG}-${VERSION}/
+
+          echo "=== Source extracted ==="
+          ls -la ${PKG}-${VERSION}/
+
+      - name: Build CEF packages
+        run: |
+          PKG="chromium-embedded-framework"
+          VERSION="${{ github.event.inputs.version }}"
+
+          cd ${PKG}-${VERSION}
+
           # Get version from changelog
-          VERSION=$(dpkg-parsechangelog -S Version)
-          echo "Building CEF version: $VERSION"
+          FULL_VERSION=$(dpkg-parsechangelog -S Version)
+          echo "Building CEF version: $FULL_VERSION"
 
           # Export clang-19 as default
           export CC=clang-19
@@ -139,6 +179,7 @@ jobs:
           mkdir -p "$TMPDIR"
 
           # Build packages (this takes HOURS)
+          # Uses system rust-src (Build-Depends), no bundled rust needed
           dpkg-buildpackage -b -us -uc
 
           # List built packages
@@ -148,14 +189,15 @@ jobs:
       - name: Run lintian checks
         continue-on-error: true
         run: |
-          lintian --info --display-info --pedantic \
-            chromium-embedded-framework/../*.deb || true
+          # Find built .deb files (in parent of build directory)
+          lintian --info --display-info --pedantic *.deb || true
 
       - name: Collect build artifacts
         run: |
           mkdir -p artifacts/cef-sid-amd64
 
-          for deb in chromium-embedded-framework/../*.deb; do
+          # Built packages are in the current directory (parent of build dir)
+          for deb in *.deb; do
             if [ -f "$deb" ]; then
               filename=$(basename "$deb")
               # Add distro suffix for consistency with other packages
@@ -165,8 +207,8 @@ jobs:
           done
 
           # Move other artifacts
-          mv chromium-embedded-framework/../*.buildinfo artifacts/cef-sid-amd64/ 2>/dev/null || true
-          mv chromium-embedded-framework/../*.changes artifacts/cef-sid-amd64/ 2>/dev/null || true
+          mv *.buildinfo artifacts/cef-sid-amd64/ 2>/dev/null || true
+          mv *.changes artifacts/cef-sid-amd64/ 2>/dev/null || true
 
           echo "=== Collected artifacts ==="
           ls -lah artifacts/cef-sid-amd64/
