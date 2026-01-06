@@ -81,60 +81,46 @@ jobs:
           git config --global user.name "$DEBFULLNAME"
           git config --global --add safe.directory '*'
 
-      - name: Clone depot_tools
+      - name: Obtain MUT tarballs
         run: |
-          # CEF build requires Google's depot_tools
+          # Use the get-orig-tarballs.sh script to create properly named MUT tarballs
+          # Run from parent directory of the package (current directory)
+          VERSION="${{ github.event.inputs.version }}"
+          CEF_BRANCH="7499"  # Branch for CEF 138.x
+
+          echo "=== Creating MUT tarballs for version $VERSION ==="
+
+          # Run the script from within the package directory
           cd chromium-embedded-framework
-          if [ ! -d "depot_tools" ]; then
-            echo "=== Cloning depot_tools ==="
-            git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git depot_tools
-          fi
-          echo "depot_tools ready at: $(pwd)/depot_tools"
+          ./debian/scripts/get-orig-tarballs.sh "$VERSION" "$CEF_BRANCH"
+          cd ..
 
-      - name: Download Chromium source tarballs
+          # Verify tarballs were created
+          echo "=== MUT tarballs created ==="
+          ls -lh chromium-embedded-framework_*.orig*.tar.xz
+
+      - name: Download Chromium Debian patches
         run: |
-          # CEF build requires Debian's Chromium source tarballs
-          # These must be in the parent directory of chromium-embedded-framework
-
-          # Get the Chromium version from CEF's debian/rules
+          # The MUT tarball contains vanilla Chromium source
+          # We need the Debian patches (debian.tar.xz) for Step 5.5 in debian/rules
           CHROMIUM_VERSION=$(grep -oP 'chromium_\K[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' chromium-embedded-framework/debian/rules | head -1)
-          echo "Chromium version needed: $CHROMIUM_VERSION"
+          echo "Chromium version: $CHROMIUM_VERSION"
 
-          # Download from Debian archive
           DEBIAN_POOL="https://deb.debian.org/debian/pool/main/c/chromium"
-
-          echo "=== Downloading Chromium orig tarball ==="
-          wget -q --show-progress -O "chromium_${CHROMIUM_VERSION}.orig.tar.xz" \
-            "${DEBIAN_POOL}/chromium_${CHROMIUM_VERSION}.orig.tar.xz"
 
           echo "=== Downloading Chromium debian tarball ==="
           # Find the latest debian revision
           DEBIAN_TAR=$(wget -qO- "${DEBIAN_POOL}/" | grep -oP "chromium_${CHROMIUM_VERSION}-[0-9]+\.debian\.tar\.xz" | sort -V | tail -1)
           echo "Found debian tarball: $DEBIAN_TAR"
-          wget -q --show-progress -O "$DEBIAN_TAR" \
-            "${DEBIAN_POOL}/${DEBIAN_TAR}"
+          wget -q --show-progress -O "$DEBIAN_TAR" "${DEBIAN_POOL}/${DEBIAN_TAR}"
 
           # Rename to expected name (debian/rules expects -1.debian.tar.xz)
           if [ "$DEBIAN_TAR" != "chromium_${CHROMIUM_VERSION}-1.debian.tar.xz" ]; then
             mv "$DEBIAN_TAR" "chromium_${CHROMIUM_VERSION}-1.debian.tar.xz"
           fi
 
-          echo "=== Downloaded files ==="
-          ls -lh chromium_*.tar.xz
-
-      - name: Download Rust toolchain
-        run: |
-          # CEF build requires Chromium's custom Rust toolchain
-          # Download from build-deps release
-          echo "=== Downloading Rust toolchain ==="
-          gh release download build-deps --pattern "rust-toolchain.tar.xz" --dir . || {
-            echo "ERROR: rust-toolchain.tar.xz not found in build-deps release"
-            echo "Please create a 'build-deps' release with rust-toolchain.tar.xz"
-            exit 1
-          }
-          ls -lh rust-toolchain.tar.xz
-        env:
-          GH_TOKEN: ${{ github.token }}
+          echo "=== Debian patches tarball ready ==="
+          ls -lh chromium_*.debian.tar.xz
 
       - name: Build CEF packages
         working-directory: chromium-embedded-framework
