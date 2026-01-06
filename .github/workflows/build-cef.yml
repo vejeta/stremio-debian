@@ -85,15 +85,18 @@ jobs:
         run: |
           # Use the get-orig-tarballs.sh script to create properly named MUT tarballs
           # See debian/README.source for details on MUT format
-          VERSION="${{ github.event.inputs.version }}"
+          # Tarballs use upstream version from changelog (without debian revision)
+          # The workflow input version is used only for the release tag
+          UPSTREAM_VERSION=$(dpkg-parsechangelog -l chromium-embedded-framework/debian/changelog -S Version | cut -d'-' -f1)
           CEF_BRANCH="7499"  # Branch for CEF 138.x
 
-          echo "=== Creating MUT tarballs for version $VERSION ==="
+          echo "=== Creating MUT tarballs for upstream version $UPSTREAM_VERSION ==="
+          echo "=== (Release tag will use: ${{ github.event.inputs.version }}) ==="
 
           # Run the script from within the package directory
           cd chromium-embedded-framework
           chmod +x debian/scripts/get-orig-tarballs.sh
-          ./debian/scripts/get-orig-tarballs.sh "$VERSION" "$CEF_BRANCH"
+          ./debian/scripts/get-orig-tarballs.sh "$UPSTREAM_VERSION" "$CEF_BRANCH"
           cd ..
 
           # Verify tarballs were created
@@ -134,7 +137,9 @@ jobs:
           #   └── debian/        <- from source
 
           PKG="chromium-embedded-framework"
-          VERSION="${{ github.event.inputs.version }}"
+          # Use upstream version from changelog (get-orig-tarballs.sh uses this)
+          VERSION=$(dpkg-parsechangelog -l chromium-embedded-framework/debian/changelog -S Version | cut -d'-' -f1)
+          echo "Upstream version from changelog: $VERSION"
 
           # Create a minimal .dsc for dpkg-source extraction
           # (We have the tarballs but no .dsc from archive yet)
@@ -161,7 +166,8 @@ jobs:
       - name: Build CEF packages
         run: |
           PKG="chromium-embedded-framework"
-          VERSION="${{ github.event.inputs.version }}"
+          # Use upstream version from changelog (same as extract step)
+          VERSION=$(dpkg-parsechangelog -l chromium-embedded-framework/debian/changelog -S Version | cut -d'-' -f1)
 
           cd ${PKG}-${VERSION}
 
