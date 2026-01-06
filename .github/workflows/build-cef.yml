@@ -151,13 +151,6 @@ jobs:
           VERSION=$(dpkg-parsechangelog -l chromium-embedded-framework/debian/changelog -S Version | cut -d'-' -f1)
           echo "Upstream version from changelog: $VERSION"
 
-          # Debug: show tarball contents
-          echo "=== DEBUG: Listing available tarballs ==="
-          ls -la ${PKG}_*.orig*.tar.xz || echo "No tarballs found!"
-
-          echo "=== DEBUG: depot-tools tarball contents (first 20 entries) ==="
-          tar -tvf "${PKG}_${VERSION}.orig-depot-tools.tar.xz" | head -20
-
           # Create fresh build directory (remove any existing one to avoid contamination)
           # CRITICAL: Self-hosted runners persist workspace - old build directories may
           # contain git repositories from previous git clone approach that interfere with
@@ -184,37 +177,12 @@ jobs:
           echo "==> Extracting depot-tools"
           tar -xf "${PKG}_${VERSION}.orig-depot-tools.tar.xz" -C "$BUILD_DIR"
 
-          # CRITICAL: Initialize depot-tools as a git repo for debian/rules compatibility
-          # debian/rules expects depot-tools to be a git repo (for git reset/clean/commit operations)
-          # The MUT tarball has no .git, so we create one here.
-          # This allows:
-          #   - git reset --hard HEAD~1 && git clean -fd (Step 6.6.1) - resets to our initial commit
-          #   - git commit (Step 6.7 end) - commits the Debian patches
-          echo "==> Initializing depot-tools as git repo (for debian/rules compatibility)"
-          cd "${BUILD_DIR}/depot-tools"
-          git init
-          git config user.email "build@github.local"
-          git config user.name "GitHub Build"
-          git add -A
-          git commit -m "Initial import from MUT tarball"
-          # Create a second commit so HEAD~1 exists (debian/rules does reset HEAD~1)
-          echo "# MUT build marker" >> .mut-build
-          git add .mut-build
-          git commit -m "Apply Debian patches placeholder"
-          cd ../..
-          echo "==> depot-tools git repo initialized with 2 commits"
-
           # Copy debian/ directory from submodule
           echo "==> Copying debian directory"
           cp -a chromium-embedded-framework/debian "$BUILD_DIR/"
 
           echo "=== Source extracted ==="
           ls -la "$BUILD_DIR/"
-
-          echo "=== DEBUG: Check depot-tools directory ==="
-          ls -la "$BUILD_DIR/depot-tools/" | head -20
-          echo "=== DEBUG: Check for gclient.py ==="
-          ls -la "$BUILD_DIR/depot-tools/gclient.py" 2>&1 || echo "gclient.py NOT FOUND!"
 
       - name: Build CEF packages
         run: |
@@ -223,22 +191,6 @@ jobs:
           VERSION=$(dpkg-parsechangelog -l chromium-embedded-framework/debian/changelog -S Version | cut -d'-' -f1)
 
           cd ${PKG}-${VERSION}
-
-          # DEBUG: Verify depot-tools before build
-          echo "=== DEBUG: Pre-build verification ==="
-          echo "Current directory: $(pwd)"
-          echo "=== Directory listing ==="
-          ls -la
-          echo "=== depot-tools directory ==="
-          ls -la depot-tools/ | head -30
-          echo "=== Checking gclient.py ==="
-          if [ -f depot-tools/gclient.py ]; then
-            echo "gclient.py EXISTS: $(ls -la depot-tools/gclient.py)"
-          else
-            echo "ERROR: gclient.py NOT FOUND!"
-            echo "=== Full depot-tools listing ==="
-            find depot-tools -name "*.py" | head -50
-          fi
 
           # Get version from changelog
           FULL_VERSION=$(dpkg-parsechangelog -S Version)
