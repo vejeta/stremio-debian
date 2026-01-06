@@ -128,40 +128,45 @@ jobs:
 
       - name: Extract MUT source package
         run: |
-          # MUT tarballs are extracted by dpkg-source -x
-          # This creates the proper directory structure:
+          # Manually extract MUT tarballs into proper directory structure:
           #   chromium-embedded-framework-VERSION/
           #   ├── cef/           <- from orig.tar.xz
           #   ├── chromium/      <- from orig-chromium.tar.xz
           #   ├── depot-tools/   <- from orig-depot-tools.tar.xz
-          #   └── debian/        <- from source
+          #   └── debian/        <- from submodule
 
           PKG="chromium-embedded-framework"
-          # Use upstream version from changelog (get-orig-tarballs.sh uses this)
+          # Use upstream version from changelog (same as get-orig-tarballs.sh)
           VERSION=$(dpkg-parsechangelog -l chromium-embedded-framework/debian/changelog -S Version | cut -d'-' -f1)
           echo "Upstream version from changelog: $VERSION"
 
-          # Create a minimal .dsc for dpkg-source extraction
-          # (We have the tarballs but no .dsc from archive yet)
-          cat > ${PKG}_${VERSION}.dsc << EOF
-          Format: 3.0 (quilt)
-          Source: ${PKG}
-          Version: ${VERSION}-1
-          Files:
-           00000000000000000000000000000000 0 ${PKG}_${VERSION}.orig.tar.xz
-           00000000000000000000000000000000 0 ${PKG}_${VERSION}.orig-chromium.tar.xz
-           00000000000000000000000000000000 0 ${PKG}_${VERSION}.orig-depot-tools.tar.xz
-          EOF
+          # Create build directory
+          BUILD_DIR="${PKG}-${VERSION}"
+          mkdir -p "$BUILD_DIR"
 
-          # Extract using dpkg-source (handles MUT automatically)
-          dpkg-source --no-check -x ${PKG}_${VERSION}.dsc
+          # Extract main CEF tarball (contains cef/ subdirectory)
+          echo "==> Extracting CEF source"
+          tar -xf "${PKG}_${VERSION}.orig.tar.xz" --strip-components=1 -C "$BUILD_DIR"
 
-          # Copy our debian/ directory (with latest changes from submodule)
-          rm -rf ${PKG}-${VERSION}/debian
-          cp -a chromium-embedded-framework/debian ${PKG}-${VERSION}/
+          # Extract Chromium component (extracts as chromium-VERSION/, need to rename)
+          echo "==> Extracting Chromium source"
+          tar -xf "${PKG}_${VERSION}.orig-chromium.tar.xz" -C "$BUILD_DIR"
+          # Rename the extracted directory to chromium/
+          CHROMIUM_DIR=$(ls -d ${BUILD_DIR}/chromium-* 2>/dev/null | head -1)
+          if [ -n "$CHROMIUM_DIR" ] && [ "$CHROMIUM_DIR" != "${BUILD_DIR}/chromium" ]; then
+            mv "$CHROMIUM_DIR" "${BUILD_DIR}/chromium"
+          fi
+
+          # Extract depot-tools component
+          echo "==> Extracting depot-tools"
+          tar -xf "${PKG}_${VERSION}.orig-depot-tools.tar.xz" -C "$BUILD_DIR"
+
+          # Copy debian/ directory from submodule
+          echo "==> Copying debian directory"
+          cp -a chromium-embedded-framework/debian "$BUILD_DIR/"
 
           echo "=== Source extracted ==="
-          ls -la ${PKG}-${VERSION}/
+          ls -la "$BUILD_DIR/"
 
       - name: Build CEF packages
         run: |
