@@ -199,6 +199,22 @@ jobs:
 
           cd ${PKG}-${VERSION}
 
+          # DEBUG: Verify depot-tools before build
+          echo "=== DEBUG: Pre-build verification ==="
+          echo "Current directory: $(pwd)"
+          echo "=== Directory listing ==="
+          ls -la
+          echo "=== depot-tools directory ==="
+          ls -la depot-tools/ | head -30
+          echo "=== Checking gclient.py ==="
+          if [ -f depot-tools/gclient.py ]; then
+            echo "gclient.py EXISTS: $(ls -la depot-tools/gclient.py)"
+          else
+            echo "ERROR: gclient.py NOT FOUND!"
+            echo "=== Full depot-tools listing ==="
+            find depot-tools -name "*.py" | head -50
+          fi
+
           # Get version from changelog
           FULL_VERSION=$(dpkg-parsechangelog -S Version)
           echo "Building CEF version: $FULL_VERSION"
