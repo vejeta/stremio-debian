@@ -81,6 +81,17 @@ jobs:
           git config --global user.name "$DEBFULLNAME"
           git config --global --add safe.directory '*'
 
+      - name: Clean up old tarballs and build artifacts
+        run: |
+          # Self-hosted runners persist workspace, so clean up any cached tarballs
+          # to ensure we use fresh ones with correct structure
+          echo "=== Cleaning up old artifacts ==="
+          rm -f chromium-embedded-framework_*.orig*.tar.xz
+          rm -f chromium_*.tar.xz
+          rm -rf chromium-embedded-framework-*/
+          rm -rf depot-tools cef-tmp
+          echo "=== Cleanup complete ==="
+
       - name: Obtain MUT tarballs
         run: |
           # Use the get-orig-tarballs.sh script to create properly named MUT tarballs
