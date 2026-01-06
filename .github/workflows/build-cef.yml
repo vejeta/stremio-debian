@@ -151,6 +151,13 @@ jobs:
           VERSION=$(dpkg-parsechangelog -l chromium-embedded-framework/debian/changelog -S Version | cut -d'-' -f1)
           echo "Upstream version from changelog: $VERSION"
 
+          # Debug: show tarball contents
+          echo "=== DEBUG: Listing available tarballs ==="
+          ls -la ${PKG}_*.orig*.tar.xz || echo "No tarballs found!"
+
+          echo "=== DEBUG: depot-tools tarball contents (first 20 entries) ==="
+          tar -tvf "${PKG}_${VERSION}.orig-depot-tools.tar.xz" | head -20
+
           # Create build directory
           BUILD_DIR="${PKG}-${VERSION}"
           mkdir -p "$BUILD_DIR"
@@ -178,6 +185,11 @@ jobs:
 
           echo "=== Source extracted ==="
           ls -la "$BUILD_DIR/"
+
+          echo "=== DEBUG: Check depot-tools directory ==="
+          ls -la "$BUILD_DIR/depot-tools/" | head -20
+          echo "=== DEBUG: Check for gclient.py ==="
+          ls -la "$BUILD_DIR/depot-tools/gclient.py" 2>&1 || echo "gclient.py NOT FOUND!"
 
       - name: Build CEF packages
         run: |
