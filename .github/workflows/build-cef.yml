@@ -124,16 +124,12 @@ jobs:
           DEBIAN_POOL="https://deb.debian.org/debian/pool/main/c/chromium"
 
           echo "=== Downloading Chromium debian tarball ==="
-          # Find the latest debian revision
-          DEBIAN_TAR=$(wget -qO- "${DEBIAN_POOL}/" | grep -oP "chromium_${CHROMIUM_VERSION}-[0-9]+\.debian\.tar\.xz" | sort -V | tail -1)
+          # Find the latest debian revision (handles suffixes like ~deb13u1)
+          DEBIAN_TAR=$(wget -qO- "${DEBIAN_POOL}/" | grep -oP "chromium_${CHROMIUM_VERSION}-[^.]+\.debian\.tar\.xz" | sort -V | tail -1)
           echo "Found debian tarball: $DEBIAN_TAR"
           wget -q --show-progress -O "$DEBIAN_TAR" "${DEBIAN_POOL}/${DEBIAN_TAR}"
 
-          # Rename to expected name (debian/rules expects -1.debian.tar.xz)
-          if [ "$DEBIAN_TAR" != "chromium_${CHROMIUM_VERSION}-1.debian.tar.xz" ]; then
-            mv "$DEBIAN_TAR" "chromium_${CHROMIUM_VERSION}-1.debian.tar.xz"
-          fi
-
+          # Keep original filename - debian/rules will find it by pattern
           echo "=== Debian patches tarball ready ==="
           ls -lh chromium_*.debian.tar.xz
 
