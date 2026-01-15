@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'CEF version to build (e.g., 138.0.1)'
+        description: 'CEF version to build (e.g., 144.0.6)'
         required: true
         type: string
       force_rebuild:
@@ -99,7 +99,7 @@ jobs:
           # Tarballs use upstream version from changelog (without debian revision)
           # The workflow input version is used only for the release tag
           UPSTREAM_VERSION=$(dpkg-parsechangelog -l chromium-embedded-framework/debian/changelog -S Version | cut -d'-' -f1)
-          CEF_BRANCH="7499"  # Branch for CEF 138.x
+          CEF_BRANCH="7559"  # Branch for CEF 144.x
 
           echo "=== Creating MUT tarballs for upstream version $UPSTREAM_VERSION ==="
           echo "=== (Release tag will use: ${{ github.event.inputs.version }}) ==="
@@ -279,8 +279,8 @@ jobs:
 
           ## Packages
 
-          - **libcef138** - CEF runtime library
-          - **libcef138-dbgsym** - Debug symbols
+          - **libcef144** - CEF runtime library
+          - **libcef144-dbgsym** - Debug symbols
           - **libcef-dev** - Development headers
           - **cef-resources** - Required runtime resources (locales, PAK files)
 
@@ -292,7 +292,7 @@ jobs:
           wget -qO - https://debian.vejeta.com/key.gpg | sudo gpg --dearmor -o /usr/share/keyrings/stremio-debian.gpg
           echo "deb [signed-by=/usr/share/keyrings/stremio-debian.gpg] https://debian.vejeta.com sid main non-free" | sudo tee /etc/apt/sources.list.d/stremio.list
           sudo apt update
-          sudo apt install libcef138 cef-resources
+          sudo apt install libcef144 cef-resources
           ```
 
           ## Build Information

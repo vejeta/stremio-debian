@@ -202,7 +202,7 @@ jobs:
           ## Dependencies
 
           stremio-gtk requires CEF packages (installed automatically):
-          - libcef138
+          - libcef144
           - cef-resources
 
           ## Why stremio-gtk?
