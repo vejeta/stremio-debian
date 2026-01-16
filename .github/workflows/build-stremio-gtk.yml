@@ -155,9 +155,88 @@ jobs:
           path: artifacts/stremio-gtk-sid-amd64/*
           retention-days: 90
 
+  build-stremio-server:
+    name: Build stremio-server - sid
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository with submodules
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Build stremio-server in sid container
+        run: |
+          docker run --rm --platform linux/amd64 --privileged \
+            -v "$PWD:/workspace" \
+            -w /workspace \
+            -e DEBIAN_FRONTEND=noninteractive \
+            -e DEBEMAIL="vejeta@gmail.com" \
+            -e DEBFULLNAME="Juan Manuel Mendez Rey" \
+            debian:sid \
+            bash -c '
+              set -e
+
+              apt-get update && apt-get upgrade -y
+              apt-get install -y \
+                git git-buildpackage pristine-tar \
+                debhelper-compat \
+                devscripts lintian dpkg-dev fakeroot
+
+              git config --global user.email "$DEBEMAIL"
+              git config --global user.name "$DEBFULLNAME"
+              git config --global --add safe.directory "*"
+
+              cd stremio-server
+
+              # Sync to latest Salsa
+              echo "=== Syncing stremio-server to latest Salsa ==="
+              git fetch origin
+              git checkout origin/master
+              echo "Synced to: $(git log -1 --oneline)"
+
+              # Get version from changelog
+              VERSION=$(dpkg-parsechangelog -S Version)
+              UPSTREAM_VERSION=$(echo "$VERSION" | cut -d- -f1)
+              echo "Building stremio-server version: $VERSION (upstream: $UPSTREAM_VERSION)"
+
+              # Fetch pristine-tar and upstream branches
+              git fetch origin pristine-tar:pristine-tar upstream:upstream
+
+              # Build with gbp
+              gbp buildpackage --git-ignore-branch --git-pristine-tar --git-upstream-branch=upstream -us -uc -b
+
+              # Lintian check
+              echo "=== Running lintian checks ==="
+              lintian --info --display-info --pedantic ../*.deb || true
+            '
+
+      - name: Collect stremio-server artifacts
+        run: |
+          mkdir -p artifacts/stremio-server-sid
+
+          for deb in stremio-server/../stremio-server*.deb; do
+            if [ -f "$deb" ]; then
+              filename=$(basename "$deb")
+              newname="${filename%.deb}-sid.deb"
+              mv "$deb" "artifacts/stremio-server-sid/$newname"
+            fi
+          done
+
+          echo "=== Collected stremio-server artifacts ==="
+          ls -lah artifacts/stremio-server-sid/
+
+      - name: Upload stremio-server artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: stremio-server-packages-sid
+          path: artifacts/stremio-server-sid/*.deb
+          retention-days: 90
+
   create-gtk-release:
     name: Create stremio-gtk Release
-    needs: [build-stremio-gtk]
+    needs: [build-stremio-gtk, build-stremio-server]
     runs-on: ubuntu-latest
 
     steps:
@@ -184,9 +263,10 @@ jobs:
           cat > RELEASE_NOTES.md << 'EOF'
           # stremio-gtk VERSION_PLACEHOLDER
 
-          ## Package
+          ## Packages
 
           - **stremio-gtk** - GTK4/Adwaita-based Stremio client with CEF web engine
+          - **stremio-server** - Stremio streaming server (required)
 
           ## Installation
 
@@ -250,6 +330,7 @@ jobs:
           prerelease: false
           files: |
             release-artifacts/stremio-gtk-packages-*/*.deb
+            release-artifacts/stremio-server-packages-*/*.deb
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
