@@ -180,8 +180,7 @@ jobs:
 
               apt-get update && apt-get upgrade -y
               apt-get install -y \
-                git git-buildpackage pristine-tar \
-                debhelper-compat \
+                git debhelper-compat nodejs npm \
                 devscripts lintian dpkg-dev fakeroot
 
               git config --global user.email "$DEBEMAIL"
@@ -198,14 +197,10 @@ jobs:
 
               # Get version from changelog
               VERSION=$(dpkg-parsechangelog -S Version)
-              UPSTREAM_VERSION=$(echo "$VERSION" | cut -d- -f1)
-              echo "Building stremio-server version: $VERSION (upstream: $UPSTREAM_VERSION)"
+              echo "Building stremio-server version: $VERSION"
 
-              # Fetch pristine-tar and upstream branches
-              git fetch origin pristine-tar:pristine-tar upstream:upstream
-
-              # Build with gbp
-              gbp buildpackage --git-ignore-branch --git-pristine-tar --git-upstream-branch=upstream -us -uc -b
+              # Build binary package (simple build without pristine-tar)
+              dpkg-buildpackage -b -us -uc
 
               # Lintian check
               echo "=== Running lintian checks ==="
