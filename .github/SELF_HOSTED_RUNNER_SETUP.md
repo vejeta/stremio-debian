@@ -268,7 +268,7 @@ CEF builds are triggered manually via GitHub Actions:
 ### Using GitHub CLI
 
 ```bash
-gh workflow run "Build CEF Packages" -f version="144.0.6"
+gh workflow run "Build CEF Packages" -f version="144.0.7"
 ```
 
 ### Using GitHub Web UI
