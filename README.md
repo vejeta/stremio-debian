@@ -144,7 +144,7 @@ This repository uses **separate releases** for different package groups:
 |-------------|----------|--------------|
 | `v*` (e.g., v5.0.0) | stremio (Qt5), stremio-server | All |
 | `gtk-*` (e.g., gtk-1.0.0-beta.13.ds-1) | stremio-gtk | sid only |
-| `cef-*` (e.g., cef-144.0.6) | libcef144, cef-resources, libcef-dev | sid only |
+| `cef-*` (e.g., cef-144.0.7) | libcef144, cef-resources, libcef-dev | sid only |
 
 **For users**: The APT repository at `debian.vejeta.com` combines all packages automatically. Just `apt install` what you need.
 

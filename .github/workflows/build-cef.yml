@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'CEF version to build (e.g., 144.0.6)'
+        description: 'CEF version to build (e.g., 144.0.7)'
         required: true
         type: string
       force_rebuild:
