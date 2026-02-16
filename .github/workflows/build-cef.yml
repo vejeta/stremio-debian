@@ -92,6 +92,8 @@ jobs:
           rm -f chromium_*.tar.xz
           rm -rf chromium-embedded-framework-*/
           rm -rf depot-tools cef-tmp
+          # Clean stale build artifacts from submodule (self-hosted runners persist these)
+          git -C chromium-embedded-framework clean -fdx --exclude=debian
           echo "=== Cleanup complete ==="
 
       - name: Obtain MUT tarballs
