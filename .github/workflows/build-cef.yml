@@ -87,6 +87,8 @@ jobs:
           # to ensure we use fresh ones with correct structure
           echo "=== Cleaning up old artifacts ==="
           rm -f chromium-embedded-framework_*.orig*.tar.xz
+          rm -f chromium-embedded-framework_*.dsc
+          rm -f chromium-embedded-framework_*.debian.tar.xz
           rm -f chromium_*.tar.xz
           rm -rf chromium-embedded-framework-*/
           rm -rf depot-tools cef-tmp
@@ -94,89 +96,51 @@ jobs:
 
       - name: Obtain MUT tarballs
         run: |
-          # Use the get-orig-tarballs.sh script to create properly named MUT tarballs
-          # See debian/README.source for details on MUT format
+          PKG="chromium-embedded-framework"
           # Tarballs use upstream version from changelog (without debian revision)
           # The workflow input version is used only for the release tag
-          UPSTREAM_VERSION=$(dpkg-parsechangelog -l chromium-embedded-framework/debian/changelog -S Version | cut -d'-' -f1)
-          CEF_BRANCH="7559"  # Branch for CEF 144.x
+          UPSTREAM_VERSION=$(dpkg-parsechangelog -l ${PKG}/debian/changelog -S Version | cut -d'-' -f1)
+          CHROMIUM_VERSION=$(grep -oP 'CHROMIUM_VERSION\s*:=\s*\K[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' ${PKG}/debian/rules)
+          CEF_BRANCH=$(echo "$CHROMIUM_VERSION" | cut -d. -f3)
 
           echo "=== Creating MUT tarballs for upstream version $UPSTREAM_VERSION ==="
+          echo "CEF branch: $CEF_BRANCH, Chromium: $CHROMIUM_VERSION"
           echo "=== (Release tag will use: ${{ github.event.inputs.version }}) ==="
 
+          # Clean stale tarballs to prevent reusing old wrong-version tarballs
+          rm -f ${PKG}_*.orig*.tar.xz
+
           # Run the script from within the package directory
-          cd chromium-embedded-framework
+          # Creates 4 MUT tarballs: orig, orig-chromium, orig-chromium-debian, orig-depot-tools
+          cd ${PKG}
           chmod +x debian/scripts/get-orig-tarballs.sh
-          ./debian/scripts/get-orig-tarballs.sh "$UPSTREAM_VERSION" "$CEF_BRANCH"
+          ./debian/scripts/get-orig-tarballs.sh "$UPSTREAM_VERSION" "$CEF_BRANCH" "$CHROMIUM_VERSION"
           cd ..
 
-          # Verify tarballs were created
+          # Verify all 4 MUT tarballs were created
           echo "=== MUT tarballs created ==="
-          ls -lh chromium-embedded-framework_*.orig*.tar.xz
-
-      - name: Download Chromium Debian patches
-        run: |
-          # The MUT tarball contains vanilla Chromium source
-          # We need the Debian patches (debian.tar.xz) for Step 5.5 in debian/rules
-          # Extract version variables from debian/rules
-          CHROMIUM_VERSION=$(grep -oP 'CHROMIUM_VERSION\s*:=\s*\K[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' chromium-embedded-framework/debian/rules)
-          CHROMIUM_DEBIAN_REV=$(grep -oP 'CHROMIUM_DEBIAN_REV\s*:=\s*\K[0-9]+' chromium-embedded-framework/debian/rules)
-          echo "Chromium version: $CHROMIUM_VERSION"
-          echo "Chromium Debian revision: $CHROMIUM_DEBIAN_REV"
-
-          DEBIAN_POOL="https://deb.debian.org/debian/pool/main/c/chromium"
-          DEBIAN_TAR="chromium_${CHROMIUM_VERSION}-${CHROMIUM_DEBIAN_REV}.debian.tar.xz"
-
-          echo "=== Downloading Chromium debian tarball ==="
-          echo "Downloading: $DEBIAN_TAR"
-          wget -q --show-progress -O "$DEBIAN_TAR" "${DEBIAN_POOL}/${DEBIAN_TAR}"
-
-          echo "=== Debian patches tarball ready ==="
-          ls -lh chromium_*.debian.tar.xz
+          ls -lh ${PKG}_*.orig*.tar.xz
 
       - name: Extract MUT source package
         run: |
-          # Manually extract MUT tarballs into proper directory structure:
-          #   chromium-embedded-framework-VERSION/
-          #   ├── cef/           <- from orig.tar.xz
-          #   ├── chromium/      <- from orig-chromium.tar.xz
-          #   ├── depot-tools/   <- from orig-depot-tools.tar.xz
-          #   └── debian/        <- from submodule
-
+          # Use dpkg-source to properly build and extract the MUT source package.
+          # This handles all 4 components (cef, chromium, chromium-debian, depot-tools)
+          # and applies the debian/ overlay correctly.
           PKG="chromium-embedded-framework"
-          # Use upstream version from changelog (same as get-orig-tarballs.sh)
-          VERSION=$(dpkg-parsechangelog -l chromium-embedded-framework/debian/changelog -S Version | cut -d'-' -f1)
-          echo "Upstream version from changelog: $VERSION"
-
-          # Create fresh build directory (remove any existing one to avoid contamination)
-          # CRITICAL: Self-hosted runners persist workspace - old build directories may
-          # contain git repositories from previous git clone approach that interfere with
-          # MUT tarball extraction (debian/rules assumes git repo for depot-tools reset)
+          VERSION=$(dpkg-parsechangelog -l ${PKG}/debian/changelog -S Version | cut -d'-' -f1)
           BUILD_DIR="${PKG}-${VERSION}"
-          echo "==> Removing old build directory if it exists"
+          echo "Upstream version: $VERSION"
+
+          # Clean any previous build directory (self-hosted runners persist workspace)
           rm -rf "$BUILD_DIR"
-          mkdir -p "$BUILD_DIR"
 
-          # Extract main CEF tarball (contains cef/ subdirectory)
-          echo "==> Extracting CEF source"
-          tar -xf "${PKG}_${VERSION}.orig.tar.xz" --strip-components=1 -C "$BUILD_DIR"
+          # Build source package (.dsc) from the submodule + orig tarballs in ./
+          echo "==> Building source package (.dsc)"
+          dpkg-source -b ${PKG}
 
-          # Extract Chromium component (extracts as chromium-VERSION/, need to rename)
-          echo "==> Extracting Chromium source"
-          tar -xf "${PKG}_${VERSION}.orig-chromium.tar.xz" -C "$BUILD_DIR"
-          # Rename the extracted directory to chromium/
-          CHROMIUM_DIR=$(ls -d ${BUILD_DIR}/chromium-* 2>/dev/null | head -1)
-          if [ -n "$CHROMIUM_DIR" ] && [ "$CHROMIUM_DIR" != "${BUILD_DIR}/chromium" ]; then
-            mv "$CHROMIUM_DIR" "${BUILD_DIR}/chromium"
-          fi
-
-          # Extract depot-tools component
-          echo "==> Extracting depot-tools"
-          tar -xf "${PKG}_${VERSION}.orig-depot-tools.tar.xz" -C "$BUILD_DIR"
-
-          # Copy debian/ directory from submodule
-          echo "==> Copying debian directory"
-          cp -a chromium-embedded-framework/debian "$BUILD_DIR/"
+          # Extract the source package — dpkg-source handles all 4 MUT components
+          echo "==> Extracting source package into ${BUILD_DIR}"
+          dpkg-source -x ${PKG}_*.dsc "$BUILD_DIR"
 
           echo "=== Source extracted ==="
           ls -la "$BUILD_DIR/"
