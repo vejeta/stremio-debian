@@ -96,7 +96,7 @@ sudo apt install stremio stremio-server
 
 **Dependencies** (installed automatically):
 - `libcef145` - CEF runtime library
-- `cef-resources` - CEF locales and resources
+- `cef-common` - CEF locales and resources
 - `stremio-server` - Streaming server
 
 ### stremio (main) - Legacy Qt5 Client
@@ -130,7 +130,7 @@ Required for BitTorrent streaming, HLS transcoding, and casting support.
 |---------|-------------|
 | **libcef145** | CEF runtime library |
 | **libcef-dev** | Development headers |
-| **cef-resources** | Locales, PAK files, runtime resources |
+| **cef-common** | Locales, PAK files, runtime resources |
 
 CEF packages are required by stremio-gtk and are installed automatically as dependencies.
 
@@ -144,7 +144,7 @@ This repository uses **separate releases** for different package groups:
 |-------------|----------|--------------|
 | `v*` (e.g., v5.0.0) | stremio (Qt5), stremio-server | All |
 | `gtk-*` (e.g., gtk-1.0.0-beta.13.ds-1) | stremio-gtk | sid only |
-| `cef-*` (e.g., cef-144.0.7) | libcef145, cef-resources, libcef-dev | sid only |
+| `cef-*` (e.g., cef-144.0.7) | libcef145, cef-common, libcef-dev | sid only |
 
 **For users**: The APT repository at `debian.vejeta.com` combines all packages automatically. Just `apt install` what you need.
 
@@ -224,7 +224,7 @@ The Qt5 client ITP was filed in 2019, but Qt5 reaching EOL means this package ca
 | stremio (Qt5) | GPL-3.0+ | all | amd64, arm64 | Legacy |
 | stremio-server | Proprietary | all | all | Active |
 | libcef145 | BSD | sid | amd64 | Active |
-| cef-resources | BSD | sid | all | Active |
+| cef-common | BSD | sid | all | Active |
 
 ---
 
