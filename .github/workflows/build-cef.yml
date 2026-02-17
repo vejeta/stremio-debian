@@ -285,6 +285,17 @@ jobs:
 
           cat RELEASE_NOTES.md
 
+      - name: Delete existing release assets if rebuilding
+        run: |
+          TAG="cef-${{ github.event.inputs.version }}"
+          # Delete all assets from existing release so softprops can re-upload
+          gh release view "$TAG" --json assets -q '.assets[].name' 2>/dev/null | while read -r asset; do
+            echo "Deleting existing asset: $asset"
+            gh release delete-asset "$TAG" "$asset" --yes
+          done || true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
