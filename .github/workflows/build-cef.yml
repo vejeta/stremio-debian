@@ -246,7 +246,7 @@ jobs:
           - **libcefSONAME_PLACEHOLDER** - CEF runtime library
           - **libcefSONAME_PLACEHOLDER-dbgsym** - Debug symbols
           - **libcef-dev** - Development headers
-          - **cef-common** - Required runtime resources (locales, PAK files)
+          - **libcef-common** - Required runtime resources (locales, PAK files)
 
           ## Installation
 
@@ -256,7 +256,7 @@ jobs:
           wget -qO - https://debian.vejeta.com/key.gpg | sudo gpg --dearmor -o /usr/share/keyrings/stremio-debian.gpg
           echo "deb [signed-by=/usr/share/keyrings/stremio-debian.gpg] https://debian.vejeta.com sid main non-free" | sudo tee /etc/apt/sources.list.d/stremio.list
           sudo apt update
-          sudo apt install libcefSONAME_PLACEHOLDER cef-common
+          sudo apt install libcefSONAME_PLACEHOLDER libcef-common
           ```
 
           ## Build Information
