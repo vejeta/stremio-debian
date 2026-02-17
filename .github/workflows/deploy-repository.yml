@@ -81,7 +81,7 @@ jobs:
 
                 # Determine component (main or non-free)
                 # non-free: stremio-server only
-                # main: stremio, stremio-gtk, libcef*, cef-common
+                # main: stremio, stremio-gtk, libcef*, libcef-common
                 if [[ "$filename" =~ ^stremio-server ]]; then
                   component="non-free"
                 else
@@ -443,7 +443,7 @@ jobs:
                   <li><strong>stremio-gtk</strong>: GTK4/Adwaita desktop client (amd64) - <strong>Debian sid only</strong></li>
                   <li><strong>libcef145</strong>: CEF runtime library (amd64) - <strong>Debian sid only</strong></li>
                   <li><strong>libcef-dev</strong>: CEF development headers (amd64) - <strong>Debian sid only</strong></li>
-                  <li><strong>cef-common</strong>: CEF runtime resources (all) - <strong>Debian sid only</strong></li>
+                  <li><strong>libcef-common</strong>: CEF runtime resources (all) - <strong>Debian sid only</strong></li>
               </ul>
 
               <h3>Non-Free Component (Proprietary)</h3>
@@ -462,7 +462,7 @@ jobs:
               <pre>sudo apt update
           sudo apt install stremio-gtk stremio-server</pre>
 
-              <p>CEF packages (libcef145, cef-common) are installed automatically as dependencies.</p>
+              <p>CEF packages (libcef145, libcef-common) are installed automatically as dependencies.</p>
 
               <h3>Why use stremio-gtk?</h3>
               <ul>
@@ -479,7 +479,7 @@ jobs:
               <h3>Available CEF Packages</h3>
               <ul>
                   <li><strong>libcef145</strong> - CEF runtime library (required for applications using CEF)</li>
-                  <li><strong>cef-common</strong> - Runtime resources: locales, PAK files, and other assets</li>
+                  <li><strong>libcef-common</strong> - Runtime resources: locales, PAK files, and other assets</li>
                   <li><strong>libcef-dev</strong> - Development headers for building applications against CEF</li>
               </ul>
 
@@ -487,11 +487,11 @@ jobs:
 
               <p><strong>For running CEF-based applications (e.g., stremio-gtk):</strong></p>
               <pre>sudo apt update
-          sudo apt install libcef145 cef-common</pre>
+          sudo apt install libcef145 libcef-common</pre>
 
               <p><strong>For development (building against CEF):</strong></p>
               <pre>sudo apt update
-          sudo apt install libcef-dev cef-common</pre>
+          sudo apt install libcef-dev libcef-common</pre>
 
               <div class="info">
                   <strong>Note:</strong> CEF packages are only available for Debian sid (unstable) on amd64 architecture due to clang-19 build requirements. These packages are installed automatically when you install stremio-gtk.
