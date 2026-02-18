@@ -318,11 +318,18 @@ jobs:
       - name: Delete existing release assets if rebuilding
         run: |
           TAG="gtk-${{ env.GTK_TAG_VERSION }}"
-          # Delete all assets from existing release so softprops can re-upload
-          gh release view "$TAG" --json assets -q '.assets[].name' 2>/dev/null | while read -r asset; do
-            echo "Deleting existing asset: $asset"
-            gh release delete-asset "$TAG" "$asset" --yes
-          done || true
+          REPO="${{ github.repository }}"
+          # Delete all assets by ID via API (avoids filename encoding issues)
+          RELEASE_ID=$(gh api "repos/$REPO/releases/tags/$TAG" --jq '.id' 2>/dev/null) || true
+          if [ -n "$RELEASE_ID" ]; then
+            gh api "repos/$REPO/releases/$RELEASE_ID/assets" --jq '.[].id' | while read -r asset_id; do
+              echo "Deleting asset ID: $asset_id"
+              gh api -X DELETE "repos/$REPO/releases/assets/$asset_id"
+            done
+            echo "All existing assets deleted"
+          else
+            echo "No existing release found for $TAG"
+          fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
