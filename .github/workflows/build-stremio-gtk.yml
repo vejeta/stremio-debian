@@ -22,8 +22,202 @@ env:
   DEBFULLNAME: "Juan Manuel Mendez Rey"
 
 jobs:
+  build-rust-cef-dll-sys:
+    name: Build rust-cef-dll-sys - sid amd64
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository with submodules
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Build in sid container
+        run: |
+          docker run --rm --platform linux/amd64 --privileged \
+            -v "$PWD:/workspace" \
+            -w /workspace \
+            -e DEBIAN_FRONTEND=noninteractive \
+            debian:sid \
+            bash -c '
+              set -e
+
+              apt-get update && apt-get upgrade -y
+
+              # Add stremio-debian repository for CEF packages
+              apt-get install -y wget gnupg
+              wget -qO - https://debian.vejeta.com/key.gpg | gpg --dearmor -o /usr/share/keyrings/stremio-debian.gpg
+              echo "deb [signed-by=/usr/share/keyrings/stremio-debian.gpg] https://debian.vejeta.com sid main non-free" > /etc/apt/sources.list.d/stremio.list
+              apt-get update
+
+              # Install debcargo and base build tools
+              apt-get install -y debcargo devscripts equivs dpkg-dev fakeroot lintian
+
+              # Extract version from overlay changelog
+              VERSION=$(head -1 rust-cef-dll-sys/changelog | sed "s/.*(\(.*\)).*/\1/")
+              UPSTREAM_VERSION=$(echo "$VERSION" | cut -d- -f1)
+              echo "Building rust-cef-dll-sys version: $VERSION (upstream: $UPSTREAM_VERSION)"
+
+              # Generate source package with debcargo
+              # --config points to debcargo.toml, overlay = "." resolves to its parent dir
+              # --no-overlay-write-back prevents modifying the git submodule
+              # --changelog-ready tells debcargo the changelog is finalized
+              mkdir -p /build
+              debcargo package \
+                --config /workspace/rust-cef-dll-sys/debcargo.toml \
+                --directory /build/rust-cef-dll-sys \
+                --no-overlay-write-back \
+                --changelog-ready \
+                cef-dll-sys "$UPSTREAM_VERSION"
+
+              # Install build dependencies
+              cd /build/rust-cef-dll-sys
+              mk-build-deps --install --tool="apt-get -o Debug::pkgProblemResolver=yes --no-install-recommends -y" debian/control
+              rm -f rust-cef-dll-sys-build-deps_*.deb
+
+              # Build binary packages
+              dpkg-buildpackage -b -us -uc
+
+              # Lintian check
+              echo "=== Running lintian checks ==="
+              lintian --info --display-info --pedantic ../*.deb || true
+
+              # Copy debs back to workspace
+              mkdir -p /workspace/build-output-cef-dll-sys
+              cp /build/*.deb /workspace/build-output-cef-dll-sys/
+
+              echo "=== Built packages ==="
+              ls -lh /workspace/build-output-cef-dll-sys/
+            '
+
+      - name: Collect build artifacts
+        run: |
+          mkdir -p artifacts/rust-cef-dll-sys-sid-amd64
+
+          for deb in build-output-cef-dll-sys/*.deb; do
+            if [ -f "$deb" ]; then
+              filename=$(basename "$deb")
+              newname="${filename%.deb}-sid.deb"
+              mv "$deb" "artifacts/rust-cef-dll-sys-sid-amd64/$newname"
+            fi
+          done
+
+          echo "=== Collected artifacts ==="
+          ls -lah artifacts/rust-cef-dll-sys-sid-amd64/
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: rust-cef-dll-sys-packages-sid-amd64
+          path: artifacts/rust-cef-dll-sys-sid-amd64/*.deb
+          retention-days: 90
+
+  build-rust-cef:
+    name: Build rust-cef - sid amd64
+    needs: [build-rust-cef-dll-sys]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository with submodules
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Download rust-cef-dll-sys packages
+        uses: actions/download-artifact@v4
+        with:
+          name: rust-cef-dll-sys-packages-sid-amd64
+          path: rust-cef-dll-sys-debs
+
+      - name: Build in sid container
+        run: |
+          docker run --rm --platform linux/amd64 --privileged \
+            -v "$PWD:/workspace" \
+            -w /workspace \
+            -e DEBIAN_FRONTEND=noninteractive \
+            debian:sid \
+            bash -c '
+              set -e
+
+              apt-get update && apt-get upgrade -y
+
+              # Add stremio-debian repository for CEF packages
+              apt-get install -y wget gnupg
+              wget -qO - https://debian.vejeta.com/key.gpg | gpg --dearmor -o /usr/share/keyrings/stremio-debian.gpg
+              echo "deb [signed-by=/usr/share/keyrings/stremio-debian.gpg] https://debian.vejeta.com sid main non-free" > /etc/apt/sources.list.d/stremio.list
+              apt-get update
+
+              # Install rust-cef-dll-sys packages from previous build
+              echo "=== Installing rust-cef-dll-sys packages ==="
+              dpkg -i rust-cef-dll-sys-debs/*.deb || apt-get install -f -y
+
+              # Install debcargo and base build tools
+              apt-get install -y debcargo devscripts equivs dpkg-dev fakeroot lintian
+
+              # Extract version from overlay changelog
+              VERSION=$(head -1 rust-cef/changelog | sed "s/.*(\(.*\)).*/\1/")
+              UPSTREAM_VERSION=$(echo "$VERSION" | cut -d- -f1)
+              echo "Building rust-cef version: $VERSION (upstream: $UPSTREAM_VERSION)"
+
+              # Generate source package with debcargo
+              # --config points to debcargo.toml, overlay = "." resolves to its parent dir
+              # --no-overlay-write-back prevents modifying the git submodule
+              # --changelog-ready tells debcargo the changelog is finalized
+              mkdir -p /build
+              debcargo package \
+                --config /workspace/rust-cef/debcargo.toml \
+                --directory /build/rust-cef \
+                --no-overlay-write-back \
+                --changelog-ready \
+                cef "$UPSTREAM_VERSION"
+
+              # Install build dependencies
+              cd /build/rust-cef
+              mk-build-deps --install --tool="apt-get -o Debug::pkgProblemResolver=yes --no-install-recommends -y" debian/control
+              rm -f rust-cef-build-deps_*.deb
+
+              # Build binary packages
+              dpkg-buildpackage -b -us -uc
+
+              # Lintian check
+              echo "=== Running lintian checks ==="
+              lintian --info --display-info --pedantic ../*.deb || true
+
+              # Copy debs back to workspace
+              mkdir -p /workspace/build-output-cef
+              cp /build/*.deb /workspace/build-output-cef/
+
+              echo "=== Built packages ==="
+              ls -lh /workspace/build-output-cef/
+            '
+
+      - name: Collect build artifacts
+        run: |
+          mkdir -p artifacts/rust-cef-sid-amd64
+
+          for deb in build-output-cef/*.deb; do
+            if [ -f "$deb" ]; then
+              filename=$(basename "$deb")
+              newname="${filename%.deb}-sid.deb"
+              mv "$deb" "artifacts/rust-cef-sid-amd64/$newname"
+            fi
+          done
+
+          echo "=== Collected artifacts ==="
+          ls -lah artifacts/rust-cef-sid-amd64/
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: rust-cef-packages-sid-amd64
+          path: artifacts/rust-cef-sid-amd64/*.deb
+          retention-days: 90
+
   build-stremio-gtk:
     name: Build stremio-gtk - sid amd64
+    needs: [build-rust-cef]
     runs-on: ubuntu-latest
     # Only build for sid/amd64 - matches CEF availability
     # CEF packages must be available in the APT repository first
@@ -34,6 +228,18 @@ jobs:
         with:
           fetch-depth: 0
           submodules: recursive
+
+      - name: Download rust-cef-dll-sys packages
+        uses: actions/download-artifact@v4
+        with:
+          name: rust-cef-dll-sys-packages-sid-amd64
+          path: rust-cef-dll-sys-debs
+
+      - name: Download rust-cef packages
+        uses: actions/download-artifact@v4
+        with:
+          name: rust-cef-packages-sid-amd64
+          path: rust-cef-debs
 
       - name: Verify stremio-gtk submodule
         run: |
@@ -64,6 +270,10 @@ jobs:
               wget -qO - https://debian.vejeta.com/key.gpg | gpg --dearmor -o /usr/share/keyrings/stremio-debian.gpg
               echo "deb [signed-by=/usr/share/keyrings/stremio-debian.gpg] https://debian.vejeta.com sid main non-free" > /etc/apt/sources.list.d/stremio.list
               apt-get update
+
+              # Install Rust CEF binding packages from previous builds
+              echo "=== Installing Rust CEF binding packages ==="
+              dpkg -i rust-cef-dll-sys-debs/*.deb rust-cef-debs/*.deb || apt-get install -f -y
 
               # Install build dependencies
               apt-get install -y \
@@ -231,7 +441,7 @@ jobs:
 
   create-gtk-release:
     name: Create stremio-gtk Release
-    needs: [build-stremio-gtk, build-stremio-server]
+    needs: [build-rust-cef-dll-sys, build-rust-cef, build-stremio-gtk, build-stremio-server]
     runs-on: ubuntu-latest
 
     steps:
@@ -262,6 +472,8 @@ jobs:
 
           - **stremio-gtk** - GTK4/Adwaita-based Stremio client with CEF web engine
           - **stremio-server** - Stremio streaming server (required)
+          - **librust-cef-dll-sys-dev** - Rust FFI bindings to CEF (build dependency)
+          - **librust-cef-dev** - Rust bindings to CEF (build dependency)
 
           ## Installation
 
@@ -302,10 +514,13 @@ jobs:
           ## Source Code
 
           - [stremio-gtk on Salsa](https://salsa.debian.org/mendezr/stremio-gtk)
+          - [rust-cef on Salsa](https://salsa.debian.org/mendezr/rust-cef)
+          - [rust-cef-dll-sys on Salsa](https://salsa.debian.org/mendezr/rust-cef-dll-sys)
 
           ## License
 
           stremio-gtk is licensed under GPL-3.0-only and is distributed in the `main` component.
+          Rust CEF bindings are licensed under MIT/Apache-2.0 and are distributed in the `main` component.
           EOF
 
           # Replace placeholders
@@ -342,6 +557,8 @@ jobs:
           draft: false
           prerelease: false
           files: |
+            release-artifacts/rust-cef-dll-sys-packages-*/*.deb
+            release-artifacts/rust-cef-packages-*/*.deb
             release-artifacts/stremio-gtk-packages-*/*.deb
             release-artifacts/stremio-server-packages-*/*.deb
         env:

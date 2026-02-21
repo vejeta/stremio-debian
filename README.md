@@ -97,7 +97,21 @@ sudo apt install stremio stremio-server
 **Dependencies** (installed automatically):
 - `libcef145` - CEF runtime library
 - `libcef-common` - CEF locales and resources
+- `librust-cef-dev` - Rust CEF bindings
+- `librust-cef-dll-sys-dev` - Rust CEF FFI bindings
 - `stremio-server` - Streaming server
+
+### Rust CEF Bindings (main) - Debian sid only
+
+| Package | Description | License |
+|---------|-------------|---------|
+| **librust-cef-dll-sys-dev** | Rust FFI bindings to CEF | Apache-2.0 OR MIT |
+| **librust-cef-dev** | Rust high-level bindings to CEF | Apache-2.0 OR MIT |
+
+These are build and runtime dependencies for stremio-gtk. They are built from the [cef-rs](https://github.com/tauri-apps/cef-rs) crates using [debcargo](https://packages.debian.org/debcargo) with Debian-specific patches to link against system CEF from `libcef-dev`.
+
+- **rust-cef-dll-sys**: [ITP #1128612](https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=1128612) | [Salsa](https://salsa.debian.org/mendezr/rust-cef-dll-sys)
+- **rust-cef**: [ITP #1128610](https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=1128610) | [Salsa](https://salsa.debian.org/mendezr/rust-cef)
 
 ### stremio (main) - Legacy Qt5 Client
 
@@ -143,7 +157,7 @@ This repository uses **separate releases** for different package groups:
 | Release Tag | Packages | Distribution |
 |-------------|----------|--------------|
 | `v*` (e.g., v5.0.0) | stremio (Qt5), stremio-server | All |
-| `gtk-*` (e.g., gtk-1.0.0-beta.13.ds-1) | stremio-gtk | sid only |
+| `gtk-*` (e.g., gtk-1.0.0-beta.13.ds-1) | stremio-gtk, stremio-server, librust-cef-dev, librust-cef-dll-sys-dev | sid only |
 | `cef-*` (e.g., cef-144.0.7) | libcef145, libcef-common, libcef-dev | sid only |
 
 **For users**: The APT repository at `debian.vejeta.com` combines all packages automatically. Just `apt install` what you need.
@@ -190,6 +204,8 @@ The Qt5 client ITP was filed in 2019, but Qt5 reaching EOL means this package ca
 │  salsa.debian.org/mendezr/stremio-server                │
 │  salsa.debian.org/mendezr/stremio-gtk                   │
 │  salsa.debian.org/mendezr/chromium-embedded-framework   │
+│  salsa.debian.org/mendezr/rust-cef-dll-sys              │
+│  salsa.debian.org/mendezr/rust-cef                      │
 └────────────────────┬────────────────────────────────────┘
                      │ Auto-Sync
                      ▼
@@ -223,8 +239,10 @@ The Qt5 client ITP was filed in 2019, but Qt5 reaching EOL means this package ca
 | stremio-gtk | GPL-3.0-only | sid | amd64 | Active |
 | stremio (Qt5) | GPL-3.0+ | all | amd64, arm64 | Legacy |
 | stremio-server | Proprietary | all | all | Active |
-| libcef145 | BSD | sid | amd64 | Active |
-| libcef-common | BSD | sid | all | Active |
+| libcef145 | BSD-3-Clause | sid | amd64 | Active |
+| libcef-common | BSD-3-Clause | sid | all | Active |
+| librust-cef-dll-sys-dev | Apache-2.0 OR MIT | sid | amd64 | Active |
+| librust-cef-dev | Apache-2.0 OR MIT | sid | amd64 | Active |
 
 ---
 
@@ -257,6 +275,8 @@ dpkg-buildpackage -us -uc
    - [stremio](https://salsa.debian.org/mendezr/stremio)
    - [stremio-server](https://salsa.debian.org/mendezr/stremio-server)
    - [chromium-embedded-framework](https://salsa.debian.org/mendezr/chromium-embedded-framework)
+   - [rust-cef-dll-sys](https://salsa.debian.org/mendezr/rust-cef-dll-sys)
+   - [rust-cef](https://salsa.debian.org/mendezr/rust-cef)
 
 2. **Build System**: Submit to [GitHub repository](https://github.com/vejeta/stremio-debian)
 
@@ -287,4 +307,4 @@ dpkg-buildpackage -us -uc
 
 ---
 
-*Last updated: 2026-01-25*
+*Last updated: 2026-02-22*

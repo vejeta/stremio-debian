@@ -19,6 +19,8 @@ env:
   SALSA_SERVER_REPO: "https://salsa.debian.org/mendezr/stremio-server.git"
   SALSA_CEF_REPO: "https://salsa.debian.org/mendezr/chromium-embedded-framework.git"
   SALSA_GTK_REPO: "https://salsa.debian.org/mendezr/stremio-gtk.git"
+  SALSA_RUST_CEF_DLL_SYS_REPO: "https://salsa.debian.org/mendezr/rust-cef-dll-sys.git"
+  SALSA_RUST_CEF_REPO: "https://salsa.debian.org/mendezr/rust-cef.git"
 
 jobs:
   check-and-sync:
@@ -79,6 +81,26 @@ jobs:
           cd sync-temp/stremio-gtk.git
           LATEST_SALSA_COMMIT=$(git rev-parse HEAD)
           echo "LATEST_SALSA_GTK_COMMIT=$LATEST_SALSA_COMMIT" >> $GITHUB_ENV
+          echo "Latest Salsa commit: $LATEST_SALSA_COMMIT"
+          cd ../..
+
+      - name: Clone rust-cef-dll-sys from Salsa
+        run: |
+          echo "=== Cloning rust-cef-dll-sys from Salsa ==="
+          git clone --bare "$SALSA_RUST_CEF_DLL_SYS_REPO" sync-temp/rust-cef-dll-sys.git
+          cd sync-temp/rust-cef-dll-sys.git
+          LATEST_SALSA_COMMIT=$(git rev-parse HEAD)
+          echo "LATEST_SALSA_RUST_CEF_DLL_SYS_COMMIT=$LATEST_SALSA_COMMIT" >> $GITHUB_ENV
+          echo "Latest Salsa commit: $LATEST_SALSA_COMMIT"
+          cd ../..
+
+      - name: Clone rust-cef from Salsa
+        run: |
+          echo "=== Cloning rust-cef from Salsa ==="
+          git clone --bare "$SALSA_RUST_CEF_REPO" sync-temp/rust-cef.git
+          cd sync-temp/rust-cef.git
+          LATEST_SALSA_COMMIT=$(git rev-parse HEAD)
+          echo "LATEST_SALSA_RUST_CEF_COMMIT=$LATEST_SALSA_COMMIT" >> $GITHUB_ENV
           echo "Latest Salsa commit: $LATEST_SALSA_COMMIT"
           cd ../..
 
@@ -175,6 +197,52 @@ jobs:
             echo "stremio-gtk directory doesn't exist, needs initial sync"
           fi
 
+      - name: Check if rust-cef-dll-sys needs update
+        id: check_rust_cef_dll_sys
+        run: |
+          if [ -d "rust-cef-dll-sys/.git" ]; then
+            cd rust-cef-dll-sys
+            CURRENT_COMMIT=$(git rev-parse HEAD)
+            echo "CURRENT_RUST_CEF_DLL_SYS_COMMIT=$CURRENT_COMMIT" >> $GITHUB_ENV
+            echo "Current commit: $CURRENT_COMMIT"
+            echo "Latest Salsa commit: $LATEST_SALSA_RUST_CEF_DLL_SYS_COMMIT"
+
+            if [ "$CURRENT_COMMIT" != "$LATEST_SALSA_RUST_CEF_DLL_SYS_COMMIT" ] || [ "${{ inputs.force_sync }}" == "true" ]; then
+              echo "needs_update=true" >> $GITHUB_OUTPUT
+              echo "rust-cef-dll-sys needs update"
+            else
+              echo "needs_update=false" >> $GITHUB_OUTPUT
+              echo "rust-cef-dll-sys is up to date"
+            fi
+            cd ..
+          else
+            echo "needs_update=true" >> $GITHUB_OUTPUT
+            echo "rust-cef-dll-sys directory doesn't exist, needs initial sync"
+          fi
+
+      - name: Check if rust-cef needs update
+        id: check_rust_cef
+        run: |
+          if [ -d "rust-cef/.git" ]; then
+            cd rust-cef
+            CURRENT_COMMIT=$(git rev-parse HEAD)
+            echo "CURRENT_RUST_CEF_COMMIT=$CURRENT_COMMIT" >> $GITHUB_ENV
+            echo "Current commit: $CURRENT_COMMIT"
+            echo "Latest Salsa commit: $LATEST_SALSA_RUST_CEF_COMMIT"
+
+            if [ "$CURRENT_COMMIT" != "$LATEST_SALSA_RUST_CEF_COMMIT" ] || [ "${{ inputs.force_sync }}" == "true" ]; then
+              echo "needs_update=true" >> $GITHUB_OUTPUT
+              echo "rust-cef needs update"
+            else
+              echo "needs_update=false" >> $GITHUB_OUTPUT
+              echo "rust-cef is up to date"
+            fi
+            cd ..
+          else
+            echo "needs_update=true" >> $GITHUB_OUTPUT
+            echo "rust-cef directory doesn't exist, needs initial sync"
+          fi
+
       - name: Sync stremio-qt5
         if: steps.check_client.outputs.needs_update == 'true'
         run: |
@@ -227,11 +295,37 @@ jobs:
 
           echo "✓ stremio-gtk synced successfully"
 
+      - name: Sync rust-cef-dll-sys
+        if: steps.check_rust_cef_dll_sys.outputs.needs_update == 'true'
+        run: |
+          echo "=== Syncing rust-cef-dll-sys ==="
+
+          # Remove existing directory if it exists
+          rm -rf rust-cef-dll-sys
+
+          # Clone fresh from Salsa
+          git clone "$SALSA_RUST_CEF_DLL_SYS_REPO" rust-cef-dll-sys
+
+          echo "✓ rust-cef-dll-sys synced successfully"
+
+      - name: Sync rust-cef
+        if: steps.check_rust_cef.outputs.needs_update == 'true'
+        run: |
+          echo "=== Syncing rust-cef ==="
+
+          # Remove existing directory if it exists
+          rm -rf rust-cef
+
+          # Clone fresh from Salsa
+          git clone "$SALSA_RUST_CEF_REPO" rust-cef
+
+          echo "✓ rust-cef synced successfully"
+
       - name: Commit and push changes
-        if: steps.check_client.outputs.needs_update == 'true' || steps.check_server.outputs.needs_update == 'true' || steps.check_cef.outputs.needs_update == 'true' || steps.check_gtk.outputs.needs_update == 'true'
+        if: steps.check_client.outputs.needs_update == 'true' || steps.check_server.outputs.needs_update == 'true' || steps.check_cef.outputs.needs_update == 'true' || steps.check_gtk.outputs.needs_update == 'true' || steps.check_rust_cef_dll_sys.outputs.needs_update == 'true' || steps.check_rust_cef.outputs.needs_update == 'true'
         run: |
           # Add changes
-          git add stremio-qt5 stremio-server chromium-embedded-framework stremio-gtk
+          git add stremio-qt5 stremio-server chromium-embedded-framework stremio-gtk rust-cef-dll-sys rust-cef
 
           # Check if there are actually changes to commit
           if git diff --cached --quiet; then
@@ -265,12 +359,22 @@ jobs:
             echo "- stremio-gtk: ${CURRENT_GTK_COMMIT:0:8} → ${LATEST_SALSA_GTK_COMMIT:0:8}" >> commit-msg.txt
           fi
 
+          if [ "${{ steps.check_rust_cef_dll_sys.outputs.needs_update }}" == "true" ]; then
+            echo "- rust-cef-dll-sys: ${CURRENT_RUST_CEF_DLL_SYS_COMMIT:0:8} → ${LATEST_SALSA_RUST_CEF_DLL_SYS_COMMIT:0:8}" >> commit-msg.txt
+          fi
+
+          if [ "${{ steps.check_rust_cef.outputs.needs_update }}" == "true" ]; then
+            echo "- rust-cef: ${CURRENT_RUST_CEF_COMMIT:0:8} → ${LATEST_SALSA_RUST_CEF_COMMIT:0:8}" >> commit-msg.txt
+          fi
+
           echo "" >> commit-msg.txt
           echo "Upstream sources:" >> commit-msg.txt
           echo "- https://salsa.debian.org/mendezr/stremio" >> commit-msg.txt
           echo "- https://salsa.debian.org/mendezr/stremio-server" >> commit-msg.txt
           echo "- https://salsa.debian.org/mendezr/chromium-embedded-framework" >> commit-msg.txt
           echo "- https://salsa.debian.org/mendezr/stremio-gtk" >> commit-msg.txt
+          echo "- https://salsa.debian.org/mendezr/rust-cef-dll-sys" >> commit-msg.txt
+          echo "- https://salsa.debian.org/mendezr/rust-cef" >> commit-msg.txt
 
           # Commit
           git commit -F commit-msg.txt
@@ -292,17 +396,21 @@ jobs:
               "server_updated": "${{ steps.check_server.outputs.needs_update }}",
               "cef_updated": "${{ steps.check_cef.outputs.needs_update }}",
               "gtk_updated": "${{ steps.check_gtk.outputs.needs_update }}",
+              "rust_cef_dll_sys_updated": "${{ steps.check_rust_cef_dll_sys.outputs.needs_update }}",
+              "rust_cef_updated": "${{ steps.check_rust_cef.outputs.needs_update }}",
               "client_commit": "${{ env.LATEST_SALSA_CLIENT_COMMIT }}",
               "server_commit": "${{ env.LATEST_SALSA_SERVER_COMMIT }}",
               "cef_commit": "${{ env.LATEST_SALSA_CEF_COMMIT }}",
-              "gtk_commit": "${{ env.LATEST_SALSA_GTK_COMMIT }}"
+              "gtk_commit": "${{ env.LATEST_SALSA_GTK_COMMIT }}",
+              "rust_cef_dll_sys_commit": "${{ env.LATEST_SALSA_RUST_CEF_DLL_SYS_COMMIT }}",
+              "rust_cef_commit": "${{ env.LATEST_SALSA_RUST_CEF_COMMIT }}"
             }
 
       - name: Summary
         run: |
           echo "=== Sync Summary ==="
           echo ""
-          if [ "${{ steps.check_client.outputs.needs_update }}" == "true" ] || [ "${{ steps.check_server.outputs.needs_update }}" == "true" ] || [ "${{ steps.check_cef.outputs.needs_update }}" == "true" ] || [ "${{ steps.check_gtk.outputs.needs_update }}" == "true" ]; then
+          if [ "${{ steps.check_client.outputs.needs_update }}" == "true" ] || [ "${{ steps.check_server.outputs.needs_update }}" == "true" ] || [ "${{ steps.check_cef.outputs.needs_update }}" == "true" ] || [ "${{ steps.check_gtk.outputs.needs_update }}" == "true" ] || [ "${{ steps.check_rust_cef_dll_sys.outputs.needs_update }}" == "true" ] || [ "${{ steps.check_rust_cef.outputs.needs_update }}" == "true" ]; then
             echo "✓ Updates found and synced"
             echo ""
             echo "Updated components:"
@@ -310,6 +418,8 @@ jobs:
             [ "${{ steps.check_server.outputs.needs_update }}" == "true" ] && echo "  - stremio-server"
             [ "${{ steps.check_cef.outputs.needs_update }}" == "true" ] && echo "  - chromium-embedded-framework"
             [ "${{ steps.check_gtk.outputs.needs_update }}" == "true" ] && echo "  - stremio-gtk"
+            [ "${{ steps.check_rust_cef_dll_sys.outputs.needs_update }}" == "true" ] && echo "  - rust-cef-dll-sys"
+            [ "${{ steps.check_rust_cef.outputs.needs_update }}" == "true" ] && echo "  - rust-cef"
             echo ""
             echo "Build workflow will be triggered automatically"
             echo "(Note: CEF builds require manual trigger due to self-hosted runner)"
