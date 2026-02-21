@@ -159,11 +159,11 @@ jobs:
             mkdir -p temp-gtk-downloads
             gh release download "$GTK_TAG" --pattern "*.deb" --dir temp-gtk-downloads/ || true
 
-            # Move stremio-gtk packages to sid/main (stremio-gtk is GPL, goes to main)
+            # Sort gtk release packages by component
             for deb in temp-gtk-downloads/*.deb; do
               if [ -f "$deb" ]; then
                 filename=$(basename "$deb")
-                echo "Processing stremio-gtk package: $filename"
+                echo "Processing stremio-gtk release package: $filename"
 
                 # Remove -sid suffix if present to get clean filename
                 clean_filename="${filename%-sid.deb}.deb"
@@ -171,14 +171,24 @@ jobs:
                   clean_filename="$filename"
                 fi
 
-                # stremio-gtk packages go to main (GPL-3.0+)
-                cp "$deb" "packages/sid/main/$clean_filename"
-                echo "  -> packages/sid/main/$clean_filename"
+                # stremio-server is proprietary -> non-free
+                # Everything else (stremio-gtk, librust-cef-*) -> main
+                if [[ "$filename" =~ ^stremio-server ]]; then
+                  component="non-free"
+                else
+                  component="main"
+                fi
+
+                cp "$deb" "packages/sid/$component/$clean_filename"
+                echo "  -> packages/sid/$component/$clean_filename"
               fi
             done
 
-            echo "=== stremio-gtk packages added to sid/main ==="
-            ls -lh packages/sid/main/ 2>/dev/null || echo "(empty)"
+            echo "=== stremio-gtk release packages sorted ==="
+            echo "main:"
+            ls -lh packages/sid/main/ 2>/dev/null || echo "  (empty)"
+            echo "non-free:"
+            ls -lh packages/sid/non-free/ 2>/dev/null || echo "  (empty)"
           else
             echo "No stremio-gtk releases found (this is OK if stremio-gtk hasn't been built yet)"
           fi
@@ -386,6 +396,8 @@ jobs:
                       <li><strong>stremio</strong> (Qt5): <a href="https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=943703">ITP #943703</a></li>
                       <li><strong>chromium-embedded-framework</strong>: <a href="https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=915400">ITP #915400</a></li>
                       <li><strong>stremio-gtk</strong>: <a href="https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=1119815">ITP #1119815</a></li>
+                      <li><strong>rust-cef-dll-sys</strong>: <a href="https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=1128612">ITP #1128612</a></li>
+                      <li><strong>rust-cef</strong>: <a href="https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=1128610">ITP #1128610</a></li>
                   </ul>
                   <p>The maintainer (<a href="mailto:vejeta@gmail.com">Juan Manuel Méndez Rey</a>) is the same for both this repository and the official Debian submissions.</p>
               </div>
@@ -444,6 +456,8 @@ jobs:
                   <li><strong>libcef145</strong>: CEF runtime library (amd64) - <strong>Debian sid only</strong></li>
                   <li><strong>libcef-dev</strong>: CEF development headers (amd64) - <strong>Debian sid only</strong></li>
                   <li><strong>libcef-common</strong>: CEF runtime resources (all) - <strong>Debian sid only</strong></li>
+                  <li><strong>librust-cef-dll-sys-dev</strong>: Rust FFI bindings to CEF (amd64) - <strong>Debian sid only</strong></li>
+                  <li><strong>librust-cef-dev</strong>: Rust high-level bindings to CEF (amd64) - <strong>Debian sid only</strong></li>
               </ul>
 
               <h3>Non-Free Component (Proprietary)</h3>
@@ -462,7 +476,7 @@ jobs:
               <pre>sudo apt update
           sudo apt install stremio-gtk stremio-server</pre>
 
-              <p>CEF packages (libcef145, libcef-common) are installed automatically as dependencies.</p>
+              <p>CEF packages (libcef145, libcef-common) and Rust CEF bindings (librust-cef-dev, librust-cef-dll-sys-dev) are installed automatically as dependencies.</p>
 
               <h3>Why use stremio-gtk?</h3>
               <ul>
@@ -516,7 +530,9 @@ jobs:
                   <li><a href="https://salsa.debian.org/mendezr/stremio">stremio</a> - Qt5 client (GPL-3.0+)</li>
                   <li><a href="https://salsa.debian.org/mendezr/stremio-server">stremio-server</a> - Streaming server (Proprietary)</li>
                   <li><a href="https://salsa.debian.org/mendezr/stremio-gtk">stremio-gtk</a> - GTK4 client (GPL-3.0+)</li>
-                  <li><a href="https://salsa.debian.org/mendezr/chromium-embedded-framework">chromium-embedded-framework</a> - CEF (Mixed)</li>
+                  <li><a href="https://salsa.debian.org/mendezr/chromium-embedded-framework">chromium-embedded-framework</a> - CEF (BSD-3-Clause)</li>
+                  <li><a href="https://salsa.debian.org/mendezr/rust-cef-dll-sys">rust-cef-dll-sys</a> - Rust FFI bindings to CEF (Apache-2.0 OR MIT)</li>
+                  <li><a href="https://salsa.debian.org/mendezr/rust-cef">rust-cef</a> - Rust bindings to CEF (Apache-2.0 OR MIT)</li>
               </ul>
 
               <p>Build infrastructure: <a href="https://github.com/vejeta/stremio-debian">github.com/vejeta/stremio-debian</a></p>
