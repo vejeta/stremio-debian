@@ -63,9 +63,10 @@ jobs:
               # --config points to debcargo.toml, overlay = "." resolves to its parent dir
               # --no-overlay-write-back prevents modifying the git submodule
               # --changelog-ready tells debcargo the changelog is finalized
+              # TMPDIR must match --directory filesystem (Docker /tmp is tmpfs, rename fails across mounts)
               mkdir -p /build
               rm -rf /build/rust-cef-dll-sys /build/rust-cef-dll-sys_*.orig.tar.*
-              debcargo package \
+              TMPDIR=/build debcargo package \
                 --config /workspace/rust-cef-dll-sys/debcargo.toml \
                 --directory /build/rust-cef-dll-sys \
                 --no-overlay-write-back \
@@ -166,9 +167,10 @@ jobs:
               # --config points to debcargo.toml, overlay = "." resolves to its parent dir
               # --no-overlay-write-back prevents modifying the git submodule
               # --changelog-ready tells debcargo the changelog is finalized
+              # TMPDIR must match --directory filesystem (Docker /tmp is tmpfs, rename fails across mounts)
               mkdir -p /build
               rm -rf /build/rust-cef /build/rust-cef_*.orig.tar.*
-              debcargo package \
+              TMPDIR=/build debcargo package \
                 --config /workspace/rust-cef/debcargo.toml \
                 --directory /build/rust-cef \
                 --no-overlay-write-back \
