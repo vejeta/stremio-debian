@@ -64,6 +64,7 @@ jobs:
               # --no-overlay-write-back prevents modifying the git submodule
               # --changelog-ready tells debcargo the changelog is finalized
               mkdir -p /build
+              rm -rf /build/rust-cef-dll-sys /build/rust-cef-dll-sys_*.orig.tar.*
               debcargo package \
                 --config /workspace/rust-cef-dll-sys/debcargo.toml \
                 --directory /build/rust-cef-dll-sys \
@@ -166,6 +167,7 @@ jobs:
               # --no-overlay-write-back prevents modifying the git submodule
               # --changelog-ready tells debcargo the changelog is finalized
               mkdir -p /build
+              rm -rf /build/rust-cef /build/rust-cef_*.orig.tar.*
               debcargo package \
                 --config /workspace/rust-cef/debcargo.toml \
                 --directory /build/rust-cef \
