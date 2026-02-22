@@ -75,8 +75,7 @@ jobs:
 
               # Install build dependencies
               cd /workspace/_debcargo_build/rust-cef-dll-sys
-              mk-build-deps --install --tool="apt-get -o Debug::pkgProblemResolver=yes --no-install-recommends -y" debian/control
-              rm -f rust-cef-dll-sys-build-deps_*.deb
+              apt-get build-dep -y .
 
               # Build binary packages
               dpkg-buildpackage -b -us -uc
@@ -85,9 +84,9 @@ jobs:
               echo "=== Running lintian checks ==="
               lintian --info --display-info --pedantic ../*.deb || true
 
-              # Collect debs
+              # Collect debs (exclude equivs build-deps packages)
               mkdir -p /workspace/build-output-cef-dll-sys
-              cp /workspace/_debcargo_build/*.deb /workspace/build-output-cef-dll-sys/
+              cp /workspace/_debcargo_build/librust-cef-dll-sys*.deb /workspace/build-output-cef-dll-sys/
 
               echo "=== Built packages ==="
               ls -lh /workspace/build-output-cef-dll-sys/
@@ -179,8 +178,7 @@ jobs:
 
               # Install build dependencies
               cd /workspace/_debcargo_build/rust-cef
-              mk-build-deps --install --tool="apt-get -o Debug::pkgProblemResolver=yes --no-install-recommends -y" debian/control
-              rm -f rust-cef-build-deps_*.deb
+              apt-get build-dep -y .
 
               # Build binary packages
               dpkg-buildpackage -b -us -uc
@@ -189,9 +187,11 @@ jobs:
               echo "=== Running lintian checks ==="
               lintian --info --display-info --pedantic ../*.deb || true
 
-              # Collect debs
+              # Collect debs (exclude equivs build-deps packages and dll-sys packages)
               mkdir -p /workspace/build-output-cef
-              cp /workspace/_debcargo_build/*.deb /workspace/build-output-cef/
+              for deb in /workspace/_debcargo_build/librust-cef-dev*.deb /workspace/_debcargo_build/librust-cef+*.deb; do
+                [ -f "$deb" ] && cp "$deb" /workspace/build-output-cef/
+              done
 
               echo "=== Built packages ==="
               ls -lh /workspace/build-output-cef/
