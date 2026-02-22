@@ -60,21 +60,21 @@ jobs:
               echo "Building rust-cef-dll-sys version: $VERSION (upstream: $UPSTREAM_VERSION)"
 
               # Generate source package with debcargo
-              # --config points to debcargo.toml, overlay = "." resolves to its parent dir
-              # --no-overlay-write-back prevents modifying the git submodule
-              # --changelog-ready tells debcargo the changelog is finalized
-              # TMPDIR must match --directory filesystem (Docker /tmp is tmpfs, rename fails across mounts)
-              mkdir -p /build
-              rm -rf /build/rust-cef-dll-sys /build/rust-cef-dll-sys_*.orig.tar.*
-              TMPDIR=/build debcargo package \
+              # All directories must be on the same filesystem (/workspace mount)
+              # to avoid EXDEV (cross-device link) errors from rename() in Docker
+              mkdir -p /workspace/_debcargo_build
+              rm -rf /workspace/_debcargo_build/rust-cef-dll-sys /workspace/_debcargo_build/rust-cef-dll-sys_*.orig.tar.*
+              export TMPDIR=/workspace/_debcargo_build
+              export CARGO_HOME=/workspace/_debcargo_build/.cargo
+              debcargo package \
                 --config /workspace/rust-cef-dll-sys/debcargo.toml \
-                --directory /build/rust-cef-dll-sys \
+                --directory /workspace/_debcargo_build/rust-cef-dll-sys \
                 --no-overlay-write-back \
                 --changelog-ready \
                 cef-dll-sys "$UPSTREAM_VERSION"
 
               # Install build dependencies
-              cd /build/rust-cef-dll-sys
+              cd /workspace/_debcargo_build/rust-cef-dll-sys
               mk-build-deps --install --tool="apt-get -o Debug::pkgProblemResolver=yes --no-install-recommends -y" debian/control
               rm -f rust-cef-dll-sys-build-deps_*.deb
 
@@ -85,9 +85,9 @@ jobs:
               echo "=== Running lintian checks ==="
               lintian --info --display-info --pedantic ../*.deb || true
 
-              # Copy debs back to workspace
+              # Collect debs
               mkdir -p /workspace/build-output-cef-dll-sys
-              cp /build/*.deb /workspace/build-output-cef-dll-sys/
+              cp /workspace/_debcargo_build/*.deb /workspace/build-output-cef-dll-sys/
 
               echo "=== Built packages ==="
               ls -lh /workspace/build-output-cef-dll-sys/
@@ -164,21 +164,21 @@ jobs:
               echo "Building rust-cef version: $VERSION (upstream: $UPSTREAM_VERSION)"
 
               # Generate source package with debcargo
-              # --config points to debcargo.toml, overlay = "." resolves to its parent dir
-              # --no-overlay-write-back prevents modifying the git submodule
-              # --changelog-ready tells debcargo the changelog is finalized
-              # TMPDIR must match --directory filesystem (Docker /tmp is tmpfs, rename fails across mounts)
-              mkdir -p /build
-              rm -rf /build/rust-cef /build/rust-cef_*.orig.tar.*
-              TMPDIR=/build debcargo package \
+              # All directories must be on the same filesystem (/workspace mount)
+              # to avoid EXDEV (cross-device link) errors from rename() in Docker
+              mkdir -p /workspace/_debcargo_build
+              rm -rf /workspace/_debcargo_build/rust-cef /workspace/_debcargo_build/rust-cef_*.orig.tar.*
+              export TMPDIR=/workspace/_debcargo_build
+              export CARGO_HOME=/workspace/_debcargo_build/.cargo
+              debcargo package \
                 --config /workspace/rust-cef/debcargo.toml \
-                --directory /build/rust-cef \
+                --directory /workspace/_debcargo_build/rust-cef \
                 --no-overlay-write-back \
                 --changelog-ready \
                 cef "$UPSTREAM_VERSION"
 
               # Install build dependencies
-              cd /build/rust-cef
+              cd /workspace/_debcargo_build/rust-cef
               mk-build-deps --install --tool="apt-get -o Debug::pkgProblemResolver=yes --no-install-recommends -y" debian/control
               rm -f rust-cef-build-deps_*.deb
 
@@ -189,9 +189,9 @@ jobs:
               echo "=== Running lintian checks ==="
               lintian --info --display-info --pedantic ../*.deb || true
 
-              # Copy debs back to workspace
+              # Collect debs
               mkdir -p /workspace/build-output-cef
-              cp /build/*.deb /workspace/build-output-cef/
+              cp /workspace/_debcargo_build/*.deb /workspace/build-output-cef/
 
               echo "=== Built packages ==="
               ls -lh /workspace/build-output-cef/
