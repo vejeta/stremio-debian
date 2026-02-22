@@ -100,7 +100,7 @@ jobs:
             if [ -f "$deb" ]; then
               filename=$(basename "$deb")
               newname="${filename%.deb}-sid.deb"
-              mv "$deb" "artifacts/rust-cef-dll-sys-sid-amd64/$newname"
+              cp "$deb" "artifacts/rust-cef-dll-sys-sid-amd64/$newname"
             fi
           done
 
@@ -205,7 +205,7 @@ jobs:
             if [ -f "$deb" ]; then
               filename=$(basename "$deb")
               newname="${filename%.deb}-sid.deb"
-              mv "$deb" "artifacts/rust-cef-sid-amd64/$newname"
+              cp "$deb" "artifacts/rust-cef-sid-amd64/$newname"
             fi
           done
 
