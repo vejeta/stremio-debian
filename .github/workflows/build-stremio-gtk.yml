@@ -189,7 +189,7 @@ jobs:
 
               # Collect debs (exclude equivs build-deps packages and dll-sys packages)
               mkdir -p /workspace/build-output-cef
-              for deb in /workspace/_debcargo_build/librust-cef-dev*.deb /workspace/_debcargo_build/librust-cef+*.deb; do
+              for deb in /workspace/_debcargo_build/librust-cef-dev*.deb; do
                 [ -f "$deb" ] && cp "$deb" /workspace/build-output-cef/
               done
 
