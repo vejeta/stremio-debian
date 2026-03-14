@@ -115,13 +115,16 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          # Find latest CEF release (tag format: cef-X.X.X)
-          CEF_TAG=$(gh release list --limit 20 --json tagName -q '.[].tagName' | grep "^cef-" | head -1)
+          # Find all CEF releases (tag format: cef-X.X.X)
+          CEF_TAGS=$(gh release list --limit 50 --json tagName -q '.[].tagName' | grep "^cef-" || true)
 
-          if [ -n "$CEF_TAG" ]; then
-            echo "Downloading CEF packages from release: $CEF_TAG"
+          if [ -n "$CEF_TAGS" ]; then
             mkdir -p temp-cef-downloads
-            gh release download "$CEF_TAG" --pattern "*.deb" --dir temp-cef-downloads/ || true
+
+            for CEF_TAG in $CEF_TAGS; do
+              echo "Downloading CEF packages from release: $CEF_TAG"
+              gh release download "$CEF_TAG" --pattern "*.deb" --dir temp-cef-downloads/ || true
+            done
 
             # Move CEF packages to sid/main (CEF only supports sid)
             for deb in temp-cef-downloads/*.deb; do
