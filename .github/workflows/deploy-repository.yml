@@ -130,8 +130,9 @@ jobs:
                 echo "Processing CEF package: $filename"
 
                 # Remove -sid suffix if present to get clean filename
-                clean_filename="${filename%-sid.deb}.deb"
-                if [ "$clean_filename" = "$filename" ]; then
+                if [[ "$filename" == *-sid.deb ]]; then
+                  clean_filename="${filename%-sid.deb}.deb"
+                else
                   clean_filename="$filename"
                 fi
 
@@ -166,8 +167,9 @@ jobs:
                 echo "Processing stremio-gtk release package: $filename"
 
                 # Remove -sid suffix if present to get clean filename
-                clean_filename="${filename%-sid.deb}.deb"
-                if [ "$clean_filename" = "$filename" ]; then
+                if [[ "$filename" == *-sid.deb ]]; then
+                  clean_filename="${filename%-sid.deb}.deb"
+                else
                   clean_filename="$filename"
                 fi
 
