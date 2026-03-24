@@ -86,6 +86,8 @@ jobs:
               # CRITICAL: Upgrade all packages to latest versions
               # This ensures Qt and other libraries match current distribution state
               # Prevents Qt ABI mismatches like qtdeclarative-abi-5-15-15 vs 5-15-17
+              # Hold systemd to prevent postinst segfault under QEMU ARM64 emulation
+              apt-mark hold systemd || true
               apt-get upgrade -y
 
               # Install build dependencies
