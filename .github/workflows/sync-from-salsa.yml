@@ -29,7 +29,7 @@ jobs:
 
     steps:
       - name: Checkout GitHub repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
           token: ${{ secrets.PAT_TOKEN || github.token }}
@@ -386,7 +386,7 @@ jobs:
 
       - name: Trigger build workflow
         if: env.CHANGES_COMMITTED == 'true'
-        uses: peter-evans/repository-dispatch@v2
+        uses: peter-evans/repository-dispatch@v4
         with:
           token: ${{ secrets.PAT_TOKEN || github.token }}
           event-type: salsa-sync-completed
