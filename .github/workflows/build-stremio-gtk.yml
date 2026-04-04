@@ -28,7 +28,7 @@ jobs:
 
     steps:
       - name: Checkout repository with submodules
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
           submodules: recursive
@@ -108,7 +108,7 @@ jobs:
           ls -lah artifacts/rust-cef-dll-sys-sid-amd64/
 
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: rust-cef-dll-sys-packages-sid-amd64
           path: artifacts/rust-cef-dll-sys-sid-amd64/*.deb
@@ -121,13 +121,13 @@ jobs:
 
     steps:
       - name: Checkout repository with submodules
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
           submodules: recursive
 
       - name: Download rust-cef-dll-sys packages
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: rust-cef-dll-sys-packages-sid-amd64
           path: rust-cef-dll-sys-debs
@@ -213,7 +213,7 @@ jobs:
           ls -lah artifacts/rust-cef-sid-amd64/
 
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: rust-cef-packages-sid-amd64
           path: artifacts/rust-cef-sid-amd64/*.deb
@@ -228,19 +228,19 @@ jobs:
 
     steps:
       - name: Checkout repository with submodules
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
           submodules: recursive
 
       - name: Download rust-cef-dll-sys packages
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: rust-cef-dll-sys-packages-sid-amd64
           path: rust-cef-dll-sys-debs
 
       - name: Download rust-cef packages
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: rust-cef-packages-sid-amd64
           path: rust-cef-debs
@@ -356,14 +356,14 @@ jobs:
           ls -lah artifacts/stremio-gtk-sid-amd64/
 
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: stremio-gtk-packages-sid-amd64
           path: artifacts/stremio-gtk-sid-amd64/*.deb
           retention-days: 90
 
       - name: Upload all artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: stremio-gtk-all-sid-amd64
           path: artifacts/stremio-gtk-sid-amd64/*
@@ -375,7 +375,7 @@ jobs:
 
     steps:
       - name: Checkout repository with submodules
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
           submodules: recursive
@@ -437,7 +437,7 @@ jobs:
           ls -lah artifacts/stremio-server-sid/
 
       - name: Upload stremio-server artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: stremio-server-packages-sid
           path: artifacts/stremio-server-sid/*.deb
@@ -450,7 +450,7 @@ jobs:
 
     steps:
       - name: Download artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: release-artifacts
 
@@ -553,7 +553,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: gtk-${{ env.GTK_TAG_VERSION }}
           name: stremio-gtk ${{ github.event.inputs.version }}
@@ -569,7 +569,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Trigger repository update
-        uses: peter-evans/repository-dispatch@v2
+        uses: peter-evans/repository-dispatch@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           event-type: gtk-packages-updated

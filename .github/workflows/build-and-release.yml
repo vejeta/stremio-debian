@@ -55,7 +55,7 @@ jobs:
           platforms: linux/amd64,linux/arm64
 
       - name: Checkout repository with submodules
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
           submodules: recursive
@@ -216,14 +216,14 @@ jobs:
           ls -lah artifacts/stremio-qt5-${{ matrix.distro }}-${{ matrix.arch }}/
 
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: stremio-qt5-packages-${{ matrix.distro }}-${{ matrix.arch }}
           path: artifacts/stremio-qt5-${{ matrix.distro }}-${{ matrix.arch }}/*.deb
           retention-days: 30
 
       - name: Upload all artifacts for release
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: stremio-qt5-all-${{ matrix.distro }}-${{ matrix.arch }}
           path: artifacts/stremio-qt5-${{ matrix.distro }}-${{ matrix.arch }}/*
@@ -271,7 +271,7 @@ jobs:
             devscripts lintian dpkg-dev fakeroot
 
       - name: Checkout repository with submodules
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
           submodules: recursive
@@ -336,14 +336,14 @@ jobs:
           ls -lah artifacts/stremio-server-${{ matrix.distro }}/
 
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: stremio-server-packages-${{ matrix.distro }}
           path: artifacts/stremio-server-${{ matrix.distro }}/*.deb
           retention-days: 30
 
       - name: Upload all artifacts for release
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: stremio-server-all-${{ matrix.distro }}
           path: artifacts/stremio-server-${{ matrix.distro }}/*
@@ -357,7 +357,7 @@ jobs:
 
     steps:
       - name: Download all artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: release-artifacts
 
@@ -483,7 +483,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           name: Release ${{ github.ref_name }}
           body_path: RELEASE_NOTES.md
@@ -498,7 +498,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Trigger repository update
-        uses: peter-evans/repository-dispatch@v2
+        uses: peter-evans/repository-dispatch@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           event-type: packages-updated
