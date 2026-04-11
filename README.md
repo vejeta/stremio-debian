@@ -95,7 +95,7 @@ sudo apt install stremio stremio-server
 - Future-proof: continues to work as Qt5 is removed from Debian
 
 **Dependencies** (installed automatically):
-- `libcef145` - CEF runtime library
+- `libcef147` - CEF runtime library
 - `libcef-common` - CEF locales and resources
 - `librust-cef-dev` - Rust CEF bindings
 - `librust-cef-dll-sys-dev` - Rust CEF FFI bindings
@@ -142,7 +142,7 @@ Required for BitTorrent streaming, HLS transcoding, and casting support.
 
 | Package | Description |
 |---------|-------------|
-| **libcef145** | CEF runtime library |
+| **libcef147** | CEF runtime library |
 | **libcef-dev** | Development headers |
 | **libcef-common** | Locales, PAK files, runtime resources |
 
@@ -158,7 +158,7 @@ This repository uses **separate releases** for different package groups:
 |-------------|----------|--------------|
 | `v*` (e.g., v5.0.0) | stremio (Qt5), stremio-server | All |
 | `gtk-*` (e.g., gtk-1.0.0-beta.13.ds-1) | stremio-gtk, stremio-server, librust-cef-dev, librust-cef-dll-sys-dev | sid only |
-| `cef-*` (e.g., cef-144.0.7) | libcef145, libcef-common, libcef-dev | sid only |
+| `cef-*` (e.g., cef-147.0.3) | libcef147, libcef-common, libcef-dev | sid only |
 
 **For users**: The APT repository at `debian.vejeta.com` combines all packages automatically. Just `apt install` what you need.
 
@@ -239,7 +239,7 @@ The Qt5 client ITP was filed in 2019, but Qt5 reaching EOL means this package ca
 | stremio-gtk | GPL-3.0-only | sid | amd64 | Active |
 | stremio (Qt5) | GPL-3.0+ | all | amd64, arm64 | Legacy |
 | stremio-server | Proprietary | all | all | Active |
-| libcef145 | BSD-3-Clause | sid | amd64 | Active |
+| libcef147 | BSD-3-Clause | sid | amd64 | Active |
 | libcef-common | BSD-3-Clause | sid | all | Active |
 | librust-cef-dll-sys-dev | Apache-2.0 OR MIT | sid | amd64 | Active |
 | librust-cef-dev | Apache-2.0 OR MIT | sid | amd64 | Active |
@@ -307,4 +307,4 @@ dpkg-buildpackage -us -uc
 
 ---
 
-*Last updated: 2026-02-22*
+*Last updated: 2026-04-11*
