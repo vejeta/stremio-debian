@@ -397,13 +397,7 @@ jobs:
               "cef_updated": "${{ steps.check_cef.outputs.needs_update }}",
               "gtk_updated": "${{ steps.check_gtk.outputs.needs_update }}",
               "rust_cef_dll_sys_updated": "${{ steps.check_rust_cef_dll_sys.outputs.needs_update }}",
-              "rust_cef_updated": "${{ steps.check_rust_cef.outputs.needs_update }}",
-              "client_commit": "${{ env.LATEST_SALSA_CLIENT_COMMIT }}",
-              "server_commit": "${{ env.LATEST_SALSA_SERVER_COMMIT }}",
-              "cef_commit": "${{ env.LATEST_SALSA_CEF_COMMIT }}",
-              "gtk_commit": "${{ env.LATEST_SALSA_GTK_COMMIT }}",
-              "rust_cef_dll_sys_commit": "${{ env.LATEST_SALSA_RUST_CEF_DLL_SYS_COMMIT }}",
-              "rust_cef_commit": "${{ env.LATEST_SALSA_RUST_CEF_COMMIT }}"
+              "rust_cef_updated": "${{ steps.check_rust_cef.outputs.needs_update }}"
             }
 
       - name: Summary
