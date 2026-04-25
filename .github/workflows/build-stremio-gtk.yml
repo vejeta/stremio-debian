@@ -492,9 +492,9 @@ jobs:
 
           ## Dependencies
 
-          stremio-gtk requires CEF packages (installed automatically):
-          - libcef145
-          - libcef-common
+          stremio-gtk requires CEF packages (installed automatically via APT dependencies):
+          - libcef (runtime library)
+          - libcef-common (shared resources)
 
           ## Why stremio-gtk?
 
