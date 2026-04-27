@@ -27,14 +27,14 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        distro: [trixie, sid, noble]
+        distro: [trixie, sid, plucky]
         arch: [amd64, arm64]
         include:
           - distro: trixie
             os_type: debian
           - distro: sid
             os_type: debian
-          - distro: noble
+          - distro: plucky
             os_type: ubuntu
 
     steps:
@@ -181,13 +181,13 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        distro: [trixie, sid, noble]
+        distro: [trixie, sid, plucky]
         include:
           - distro: trixie
             os_type: debian
           - distro: sid
             os_type: debian
-          - distro: noble
+          - distro: plucky
             os_type: ubuntu
     container:
       image: ${{ matrix.os_type }}:${{ matrix.distro }}
@@ -296,7 +296,7 @@ jobs:
 
           - Debian trixie (stable)
           - Debian sid (unstable)
-          - Ubuntu 24.04 LTS (noble)
+          - Ubuntu 25.04 (plucky)
 
           ## Build Information
 

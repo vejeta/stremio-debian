@@ -46,7 +46,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           # Create directory structure for each distribution
-          mkdir -p packages/{testing,trixie,bookworm,sid,noble}/{main,non-free}
+          mkdir -p packages/{testing,trixie,bookworm,sid,noble,plucky}/{main,non-free}
 
           # Download from latest v* release (stremio-qt5 and stremio-server)
           # Note: We specifically look for v* tags, not "Latest" which could be gtk-* or cef-*
@@ -100,7 +100,7 @@ jobs:
 
             echo ""
             echo "=== Organized packages ==="
-            for distro in testing trixie bookworm sid noble; do
+            for distro in testing trixie bookworm sid noble plucky; do
               echo "Distribution: $distro"
               echo "  main:"
               ls -lh packages/$distro/main/ 2>/dev/null || echo "    (empty)"
@@ -236,7 +236,7 @@ jobs:
             done
 
             echo "=== stremio-qt6 release packages sorted ==="
-            for distro in trixie sid noble; do
+            for distro in trixie sid plucky; do
               echo "Distribution: $distro"
               echo "  main:"
               ls -lh packages/$distro/main/stremio-qt6* 2>/dev/null || echo "    (none)"
@@ -286,11 +286,17 @@ jobs:
           ./repository-scripts/generate-apt-repo.sh packages/noble/non-free debian-repo noble non-free amd64
           ./repository-scripts/generate-apt-repo.sh packages/noble/non-free debian-repo noble non-free arm64
 
+          echo "=== Generating repository for Ubuntu 25.04 (plucky) - EXPERIMENTAL ==="
+          ./repository-scripts/generate-apt-repo.sh packages/plucky/main debian-repo plucky main amd64
+          ./repository-scripts/generate-apt-repo.sh packages/plucky/main debian-repo plucky main arm64
+          ./repository-scripts/generate-apt-repo.sh packages/plucky/non-free debian-repo plucky non-free amd64
+          ./repository-scripts/generate-apt-repo.sh packages/plucky/non-free debian-repo plucky non-free arm64
+
       - name: Create empty non-free-firmware components
         run: |
           # Debian 12+ expects non-free-firmware component
           # Create empty Packages files to match Release file declaration
-          for distro in testing trixie bookworm sid noble; do
+          for distro in testing trixie bookworm sid noble plucky; do
             echo "Creating empty non-free-firmware for $distro"
 
             # Create for both amd64 and arm64
@@ -359,6 +365,7 @@ jobs:
           update_release bookworm
           update_release sid
           update_release noble
+          update_release plucky
 
           cd ..
 
@@ -378,6 +385,9 @@ jobs:
 
           echo "=== Signing noble repository ==="
           ./repository-scripts/sign-repository.sh debian-repo noble "${{ secrets.GPG_KEY_ID }}"
+
+          echo "=== Signing plucky repository ==="
+          ./repository-scripts/sign-repository.sh debian-repo plucky "${{ secrets.GPG_KEY_ID }}"
 
       - name: Export GPG public key
         run: |
@@ -505,7 +515,7 @@ jobs:
 
               <h3>Main Component (Free/Open Source)</h3>
               <ul>
-                  <li><strong>stremio</strong> (Qt6): Experimental Qt6/QML desktop client for KDE/Plasma users (amd64, arm64) - <strong>Debian trixie, sid &amp; Ubuntu noble</strong></li>
+                  <li><strong>stremio-qt6</strong>: Experimental Qt6/QML desktop client for KDE/Plasma users (amd64, arm64) - <strong>Debian trixie, sid &amp; Ubuntu plucky</strong></li>
               <li><strong>stremio</strong> (Qt5): Legacy Qt5/QML desktop client (amd64, arm64) - bookworm, trixie, testing</li>
                   <li><strong>stremio-gtk</strong>: GTK4/Adwaita desktop client (amd64) - <strong>Debian sid only</strong></li>
                   <li><strong>libcef147</strong>: CEF runtime library (amd64) - <strong>Debian sid only</strong></li>

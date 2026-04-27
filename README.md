@@ -74,7 +74,7 @@ sudo apt install stremio stremio-server
 - Debian 13 (trixie) - Qt5 client + Qt6 client (experimental)
 - Debian testing - Qt5 client only
 - Debian 12 (bookworm) - Qt5 client only
-- Ubuntu 24.04 LTS (noble) - Qt6 client (experimental)
+- Ubuntu 25.04 (plucky) - Qt6 client (experimental)
 
 ---
 
@@ -121,7 +121,7 @@ These are build and runtime dependencies for stremio-gtk. They are built from th
 |----------|-------|
 | **License** | GPL-3.0-or-later |
 | **Architecture** | amd64, arm64 |
-| **Distribution** | Debian trixie, sid; Ubuntu noble |
+| **Distribution** | Debian trixie, sid; Ubuntu plucky (25.04) |
 | **Status** | **Experimental** |
 | **Upstream** | [github.com/vejeta/stremio-shell (qt6-migration)](https://github.com/vejeta/stremio-shell/tree/qt6-migration) |
 | **Packaging** | [salsa.debian.org/mendezr/stremio-qt6](https://salsa.debian.org/mendezr/stremio-qt6) |
@@ -253,7 +253,7 @@ The Qt5 client ITP was filed in 2019, but Qt5 reaching EOL means this package ca
 | Component | License | Distribution | Architecture | Status |
 |-----------|---------|--------------|--------------|--------|
 | stremio-gtk | GPL-3.0-only | sid | amd64 | Active |
-| stremio (Qt6) | GPL-3.0+ | trixie, sid, noble | amd64, arm64 | Experimental |
+| stremio-qt6 | GPL-3.0+ | trixie, sid, plucky | amd64, arm64 | Experimental |
 | stremio (Qt5) | GPL-3.0+ | all | amd64, arm64 | Legacy |
 | stremio-server | Proprietary | all | all | Active |
 | libcef147 | BSD-3-Clause | sid | amd64 | Active |
