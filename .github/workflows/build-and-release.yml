@@ -229,177 +229,6 @@ jobs:
           path: artifacts/stremio-qt5-${{ matrix.distro }}-${{ matrix.arch }}/*
           retention-days: 30
 
-  build-stremio-qt6:
-    name: Build stremio-qt6 (main/free) - ${{ matrix.distro }}-${{ matrix.arch }}
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        distro: [trixie, sid, noble]
-        arch: [amd64, arm64]
-        include:
-          - distro: trixie
-            suite: stable
-            os_type: debian
-          - distro: sid
-            suite: unstable
-            os_type: debian
-          - distro: noble
-            suite: lts
-            os_type: ubuntu
-
-    steps:
-      - name: Set up QEMU for multi-architecture builds
-        uses: docker/setup-qemu-action@v3
-        with:
-          platforms: linux/amd64,linux/arm64
-
-      - name: Checkout repository with submodules
-        uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-          submodules: recursive
-
-      - name: Build in ${{ matrix.arch }} container
-        run: |
-          # Determine Docker image based on os_type
-          if [ "${{ matrix.os_type }}" = "ubuntu" ]; then
-            IMAGE="ubuntu:${{ matrix.distro }}"
-          else
-            IMAGE="debian:${{ matrix.distro }}"
-          fi
-
-          # Run build in architecture-specific container
-          docker run --rm --platform linux/${{ matrix.arch }} --privileged \
-            -v "$PWD:/workspace" \
-            -w /workspace \
-            -e DEBIAN_FRONTEND=noninteractive \
-            -e DEBEMAIL="vejeta@gmail.com" \
-            -e DEBFULLNAME="Juan Manuel Méndez Rey" \
-            "$IMAGE" \
-            bash -c '
-              set -e
-
-              # Update package lists
-              apt-get update
-
-              # Upgrade all packages to latest versions
-              apt-mark hold systemd || true
-              apt-get upgrade -y
-
-              # Install build dependencies
-              apt-get install -y \
-                git git-buildpackage pristine-tar \
-                debhelper-compat cmake pkgconf \
-                qt6-base-dev qt6-declarative-dev qt6-webengine-dev \
-                qt6-webchannel-dev qt6-tools-dev \
-                libgl-dev librsvg2-bin \
-                libmpv-dev libmpvqt-dev libssl-dev \
-                libkdsingleapplication-qt6-dev \
-                qml6-module-qtwebengine qml6-module-qtwebchannel \
-                qml6-module-qtquick-controls qml6-module-qtquick-dialogs \
-                devscripts lintian dpkg-dev fakeroot
-
-              # Configure git for gbp
-              git config --global user.email "$DEBEMAIL"
-              git config --global user.name "$DEBFULLNAME"
-              git config --global --add safe.directory "*"
-
-              # Create upstream tarball
-              cd stremio-qt6
-
-              # Sync to latest Salsa (source of truth)
-              echo "=== Syncing stremio-qt6 to latest Salsa ==="
-              git fetch origin
-              git checkout origin/master
-              echo "Synced to: $(git log -1 --oneline)"
-
-              # Fetch pristine-tar and upstream branches for orig tarball
-              echo "=== Fetching pristine-tar and upstream branches ==="
-              git fetch origin pristine-tar:pristine-tar upstream:upstream || true
-
-              # Get version from changelog (without debian revision)
-              if [ -f debian/changelog ]; then
-                VERSION=$(dpkg-parsechangelog -S Version | cut -d- -f1)
-                echo "Creating upstream tarball for version: $VERSION"
-              else
-                echo "Error: debian/changelog not found"
-                exit 1
-              fi
-
-              # Try pristine-tar with both .tar.xz and .tar.gz formats
-              if git rev-parse --verify pristine-tar >/dev/null 2>&1; then
-                echo "Attempting to use pristine-tar..."
-                if pristine-tar checkout ../stremio_${VERSION}.orig.tar.xz 2>/dev/null; then
-                  echo "Generated tarball from pristine-tar (tar.xz)"
-                elif pristine-tar checkout ../stremio_${VERSION}.orig.tar.gz 2>/dev/null; then
-                  echo "Generated tarball from pristine-tar (tar.gz)"
-                fi
-              fi
-
-              # If pristine-tar did not work, create from upstream tag
-              if [ ! -f ../stremio_${VERSION}.orig.tar.xz ] && [ ! -f ../stremio_${VERSION}.orig.tar.gz ]; then
-                echo "Generating tarball from upstream tag..."
-                UPSTREAM_TAG=$(git tag -l "upstream/*" | grep -E "${VERSION%+*}" | tail -1)
-
-                if [ -n "$UPSTREAM_TAG" ]; then
-                  echo "Using upstream tag: $UPSTREAM_TAG"
-                  git archive --format=tar --prefix=stremio-${VERSION%+*}/ $UPSTREAM_TAG | xz > ../stremio_${VERSION}.orig.tar.xz
-                else
-                  echo "No upstream tag found, creating from current source..."
-                  cd ..
-                  tar --exclude-vcs --exclude=debian --exclude=.pc \
-                    -cJf stremio_${VERSION}.orig.tar.xz stremio-qt6/
-                  cd stremio-qt6
-                fi
-              fi
-
-              # Show what we created
-              ls -lh ../stremio_${VERSION}.orig.tar.* || true
-
-              # Build both source and binary packages
-              echo "=== Building packages ==="
-              dpkg-buildpackage -us -uc -sa
-
-              # Run lintian checks
-              echo "=== Running lintian checks ==="
-              lintian --info --display-info --pedantic ../*.deb || true
-            '
-
-      - name: Collect build artifacts
-        run: |
-          mkdir -p artifacts/stremio-qt6-${{ matrix.distro }}-${{ matrix.arch }}
-
-          # Rename .deb packages to include distribution name
-          for deb in stremio-qt6/../*.deb; do
-            if [ -f "$deb" ]; then
-              filename=$(basename "$deb")
-              newname="${filename%.deb}-${{ matrix.distro }}.deb"
-              mv "$deb" "artifacts/stremio-qt6-${{ matrix.distro }}-${{ matrix.arch }}/$newname"
-            fi
-          done
-
-          # Move other files without renaming
-          mv stremio-qt6/../*.dsc artifacts/stremio-qt6-${{ matrix.distro }}-${{ matrix.arch }}/ 2>/dev/null || true
-          mv stremio-qt6/../*.tar.* artifacts/stremio-qt6-${{ matrix.distro }}-${{ matrix.arch }}/ 2>/dev/null || true
-          mv stremio-qt6/../*.buildinfo artifacts/stremio-qt6-${{ matrix.distro }}-${{ matrix.arch }}/ 2>/dev/null || true
-          mv stremio-qt6/../*.changes artifacts/stremio-qt6-${{ matrix.distro }}-${{ matrix.arch }}/ 2>/dev/null || true
-
-          ls -lah artifacts/stremio-qt6-${{ matrix.distro }}-${{ matrix.arch }}/
-
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v7
-        with:
-          name: stremio-qt6-packages-${{ matrix.distro }}-${{ matrix.arch }}
-          path: artifacts/stremio-qt6-${{ matrix.distro }}-${{ matrix.arch }}/*.deb
-          retention-days: 30
-
-      - name: Upload all artifacts for release
-        uses: actions/upload-artifact@v7
-        with:
-          name: stremio-qt6-all-${{ matrix.distro }}-${{ matrix.arch }}
-          path: artifacts/stremio-qt6-${{ matrix.distro }}-${{ matrix.arch }}/*
-          retention-days: 30
-
   build-stremio-server:
     name: Build stremio-server (non-free) - ${{ matrix.distro }}
     runs-on: ubuntu-latest
@@ -522,7 +351,7 @@ jobs:
 
   create-release:
     name: Create GitHub Release
-    needs: [build-stremio-qt5, build-stremio-qt6, build-stremio-server]
+    needs: [build-stremio-qt5, build-stremio-server]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v')
 
@@ -662,12 +491,9 @@ jobs:
           prerelease: false
           files: |
             release-artifacts/stremio-qt5-packages-*/*.deb
-            release-artifacts/stremio-qt6-packages-*/*.deb
             release-artifacts/stremio-server-packages-*/*.deb
             release-artifacts/stremio-qt5-all-trixie/*.dsc
             release-artifacts/stremio-qt5-all-trixie/*.tar.*
-            release-artifacts/stremio-qt6-all-sid/*.dsc
-            release-artifacts/stremio-qt6-all-sid/*.tar.*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

@@ -2,7 +2,7 @@ name: Deploy APT Repository to GitHub Pages
 
 on:
   repository_dispatch:
-    types: [packages-updated, cef-packages-updated, gtk-packages-updated]
+    types: [packages-updated, cef-packages-updated, gtk-packages-updated, qt6-packages-updated]
   workflow_dispatch:
     inputs:
       force_rebuild:
@@ -196,6 +196,55 @@ jobs:
             ls -lh packages/sid/non-free/ 2>/dev/null || echo "  (empty)"
           else
             echo "No stremio-gtk releases found (this is OK if stremio-gtk hasn't been built yet)"
+          fi
+
+      - name: Download stremio-qt6 packages from separate releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Find latest stremio-qt6 release (tag format: qt6-X.X.X)
+          QT6_TAG=$(gh release list --limit 20 --json tagName -q '.[].tagName' | grep "^qt6-" | head -1)
+
+          if [ -n "$QT6_TAG" ]; then
+            echo "Downloading stremio-qt6 packages from release: $QT6_TAG"
+            mkdir -p temp-qt6-downloads
+            gh release download "$QT6_TAG" --pattern "*.deb" --dir temp-qt6-downloads/ || true
+
+            for deb in temp-qt6-downloads/*.deb; do
+              if [ -f "$deb" ]; then
+                filename=$(basename "$deb")
+                echo "Processing stremio-qt6 release package: $filename"
+
+                # Extract distribution from filename suffix
+                if [[ "$filename" =~ -([a-z]+)\.deb$ ]]; then
+                  distro="${BASH_REMATCH[1]}"
+                  clean_filename="${filename%-${distro}.deb}.deb"
+
+                  # stremio-server -> non-free, everything else -> main
+                  if [[ "$filename" =~ ^stremio-server ]]; then
+                    component="non-free"
+                  else
+                    component="main"
+                  fi
+
+                  cp "$deb" "packages/$distro/$component/$clean_filename"
+                  echo "  -> packages/$distro/$component/$clean_filename"
+                else
+                  echo "  Warning: Could not extract distribution from filename"
+                fi
+              fi
+            done
+
+            echo "=== stremio-qt6 release packages sorted ==="
+            for distro in trixie sid noble; do
+              echo "Distribution: $distro"
+              echo "  main:"
+              ls -lh packages/$distro/main/stremio-qt6* 2>/dev/null || echo "    (none)"
+              echo "  non-free:"
+              ls -lh packages/$distro/non-free/stremio-server* 2>/dev/null || echo "    (none)"
+            done
+          else
+            echo "No stremio-qt6 releases found (this is OK if stremio-qt6 hasn't been built yet)"
           fi
 
       - name: Import GPG key
