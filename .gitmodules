@@ -16,3 +16,6 @@
 [submodule "rust-cef"]
 	path = rust-cef
 	url = https://salsa.debian.org/mendezr/rust-cef.git
+[submodule "stremio-qt6"]
+	path = stremio-qt6
+	url = https://salsa.debian.org/mendezr/stremio-qt6.git

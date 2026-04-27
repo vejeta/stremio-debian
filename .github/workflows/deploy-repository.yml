@@ -456,7 +456,8 @@ jobs:
 
               <h3>Main Component (Free/Open Source)</h3>
               <ul>
-                  <li><strong>stremio</strong>: Qt5/QML desktop client (amd64, arm64) - all distributions</li>
+                  <li><strong>stremio</strong> (Qt6): Experimental Qt6/QML desktop client for KDE/Plasma users (amd64, arm64) - <strong>Debian trixie, sid &amp; Ubuntu noble</strong></li>
+              <li><strong>stremio</strong> (Qt5): Legacy Qt5/QML desktop client (amd64, arm64) - bookworm, trixie, testing</li>
                   <li><strong>stremio-gtk</strong>: GTK4/Adwaita desktop client (amd64) - <strong>Debian sid only</strong></li>
                   <li><strong>libcef147</strong>: CEF runtime library (amd64) - <strong>Debian sid only</strong></li>
                   <li><strong>libcef-dev</strong>: CEF development headers (amd64) - <strong>Debian sid only</strong></li>

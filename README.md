@@ -24,8 +24,9 @@ Modern Debian packaging for the complete **Stremio** media center ecosystem.
 
 | Client | Status | Recommendation |
 |--------|--------|----------------|
-| **stremio** (Qt5) | Legacy - Qt5 EOL | Use on bookworm/trixie while available |
 | **stremio-gtk** (GTK4/CEF) | **Active Development** | **Recommended for Debian sid** |
+| **stremio** (Qt6) | Experimental | For KDE/Plasma users who prefer Qt (sid/Ubuntu only) |
+| **stremio** (Qt5) | Legacy - Qt5 EOL | Use on bookworm/trixie while available |
 
 **stremio-gtk** is the successor client developed by Stremio using GTK4/Adwaita with CEF (Chromium Embedded Framework). It is the future-proof option that will continue to work as Qt5 is phased out.
 
@@ -69,10 +70,11 @@ sudo apt install stremio stremio-server
 ```
 
 **Supported Distributions:**
-- Debian sid (unstable) - **stremio-gtk** (recommended) + Qt5 client
+- Debian sid (unstable) - **stremio-gtk** (recommended) + Qt6 client (experimental)
+- Debian 13 (trixie) - Qt5 client + Qt6 client (experimental)
 - Debian testing - Qt5 client only
-- Debian 13 (trixie) - Qt5 client only
 - Debian 12 (bookworm) - Qt5 client only
+- Ubuntu 24.04 LTS (noble) - Qt6 client (experimental)
 
 ---
 
@@ -112,6 +114,19 @@ These are build and runtime dependencies for stremio-gtk. They are built from th
 
 - **rust-cef-dll-sys**: [ITP #1128612](https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=1128612) | [Salsa](https://salsa.debian.org/mendezr/rust-cef-dll-sys)
 - **rust-cef**: [ITP #1128610](https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=1128610) | [Salsa](https://salsa.debian.org/mendezr/rust-cef)
+
+### stremio (main) - Experimental Qt6 Client
+
+| Property | Value |
+|----------|-------|
+| **License** | GPL-3.0-or-later |
+| **Architecture** | amd64, arm64 |
+| **Distribution** | Debian trixie, sid; Ubuntu noble |
+| **Status** | **Experimental** |
+| **Upstream** | [github.com/vejeta/stremio-shell (qt6-migration)](https://github.com/vejeta/stremio-shell/tree/qt6-migration) |
+| **Packaging** | [salsa.debian.org/mendezr/stremio-qt6](https://salsa.debian.org/mendezr/stremio-qt6) |
+
+**Note**: This is an experimental Qt6 port intended as a workaround for users who prefer KDE/Plasma or Qt-based desktop environments and want a non-deprecated Qt client. The recommended client for Debian sid remains stremio-gtk. On sid and Ubuntu, the Qt6 version supersedes the Qt5 package due to its higher version number.
 
 ### stremio (main) - Legacy Qt5 Client
 
@@ -201,6 +216,7 @@ The Qt5 client ITP was filed in 2019, but Qt5 reaching EOL means this package ca
 ┌─────────────────────────────────────────────────────────┐
 │     Canonical Sources (Salsa Debian GitLab)             │
 │  salsa.debian.org/mendezr/stremio                       │
+│  salsa.debian.org/mendezr/stremio-qt6                   │
 │  salsa.debian.org/mendezr/stremio-server                │
 │  salsa.debian.org/mendezr/stremio-gtk                   │
 │  salsa.debian.org/mendezr/chromium-embedded-framework   │
@@ -237,6 +253,7 @@ The Qt5 client ITP was filed in 2019, but Qt5 reaching EOL means this package ca
 | Component | License | Distribution | Architecture | Status |
 |-----------|---------|--------------|--------------|--------|
 | stremio-gtk | GPL-3.0-only | sid | amd64 | Active |
+| stremio (Qt6) | GPL-3.0+ | trixie, sid, noble | amd64, arm64 | Experimental |
 | stremio (Qt5) | GPL-3.0+ | all | amd64, arm64 | Legacy |
 | stremio-server | Proprietary | all | all | Active |
 | libcef147 | BSD-3-Clause | sid | amd64 | Active |
@@ -259,6 +276,10 @@ cd stremio-debian
 cd stremio-gtk
 dpkg-buildpackage -us -uc
 
+# Build Qt6 client (requires Debian sid or Ubuntu noble)
+cd ../stremio-qt6
+dpkg-buildpackage -us -uc
+
 # Build Qt5 client
 cd ../stremio-qt5
 QT_DEFAULT_MAJOR_VERSION=5 dpkg-buildpackage -us -uc
@@ -273,6 +294,7 @@ dpkg-buildpackage -us -uc
 1. **Packaging Changes**: Submit to Salsa repositories
    - [stremio-gtk](https://salsa.debian.org/mendezr/stremio-gtk)
    - [stremio](https://salsa.debian.org/mendezr/stremio)
+   - [stremio-qt6](https://salsa.debian.org/mendezr/stremio-qt6)
    - [stremio-server](https://salsa.debian.org/mendezr/stremio-server)
    - [chromium-embedded-framework](https://salsa.debian.org/mendezr/chromium-embedded-framework)
    - [rust-cef-dll-sys](https://salsa.debian.org/mendezr/rust-cef-dll-sys)
@@ -307,4 +329,4 @@ dpkg-buildpackage -us -uc
 
 ---
 
-*Last updated: 2026-04-11*
+*Last updated: 2026-04-28*
