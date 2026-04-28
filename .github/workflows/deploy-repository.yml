@@ -494,6 +494,9 @@ jobs:
               <p><strong>For Ubuntu 24.04 LTS (Noble Numbat) - EXPERIMENTAL:</strong></p>
               <pre>echo "deb [signed-by=/usr/share/keyrings/stremio-debian.gpg] https://debian.vejeta.com noble main non-free" | sudo tee /etc/apt/sources.list.d/stremio.list</pre>
 
+              <p><strong>For Ubuntu 25.04 (Plucky Puffin) - EXPERIMENTAL (stremio-qt6):</strong></p>
+              <pre>echo "deb [signed-by=/usr/share/keyrings/stremio-debian.gpg] https://debian.vejeta.com plucky main non-free" | sudo tee /etc/apt/sources.list.d/stremio.list</pre>
+
               <div class="warning">
                   <strong>⚠️ Ubuntu Support is Experimental:</strong> Ubuntu packages are built automatically but have limited testing. Community feedback is welcome via GitHub Issues.
               </div>
@@ -509,6 +512,7 @@ jobs:
                   <li><strong>Debian 12 (bookworm)</strong> - Previous stable release</li>
                   <li><strong>Debian sid (unstable)</strong> - Rolling release (compatible with Kali Linux)</li>
                   <li><strong>Ubuntu 24.04 LTS (noble)</strong> - EXPERIMENTAL (community testing)</li>
+                  <li><strong>Ubuntu 25.04 (plucky)</strong> - EXPERIMENTAL (stremio-qt6 only)</li>
               </ul>
 
               <h2>Available Packages</h2>
@@ -550,6 +554,19 @@ jobs:
                   <li>Future-proof: works as Qt5/QtWebEngine are phased out</li>
                   <li>Native Wayland support</li>
               </ul>
+
+              <h2>stremio-qt6 Installation (Debian trixie, sid, Ubuntu plucky)</h2>
+
+              <p><strong>stremio-qt6</strong> is an experimental Qt6 port of the Stremio client, intended for users who prefer KDE/Plasma or Qt-based desktop environments.</p>
+
+              <div class="info">
+                  <strong>Requirements:</strong> Debian trixie, sid, or Ubuntu 25.04 (plucky) with amd64 or arm64 architecture.
+              </div>
+
+              <pre>sudo apt update
+          sudo apt install stremio-qt6 stremio-server</pre>
+
+              <p><strong>Note:</strong> stremio-qt6 can be installed alongside stremio-gtk. The recommended client for Debian sid remains stremio-gtk.</p>
 
               <h2>CEF Packages Installation (Debian sid only)</h2>
 
@@ -655,6 +672,7 @@ jobs:
           echo "📦 Debian 12 (bookworm) - previous stable"
           echo "📦 Debian sid (unstable) - rolling release (Kali compatible)"
           echo "📦 Ubuntu 24.04 LTS (noble) - EXPERIMENTAL"
+          echo "📦 Ubuntu 25.04 (plucky) - EXPERIMENTAL (stremio-qt6)"
           echo ""
           echo "Users can add the repository with:"
           echo ""
@@ -673,3 +691,6 @@ jobs:
           echo ""
           echo "For Ubuntu 24.04 LTS (noble) - EXPERIMENTAL:"
           echo "  echo \"deb [signed-by=/usr/share/keyrings/stremio-debian.gpg] https://debian.vejeta.com noble main non-free\" | sudo tee /etc/apt/sources.list.d/stremio.list"
+          echo ""
+          echo "For Ubuntu 25.04 (plucky) - EXPERIMENTAL (stremio-qt6):"
+          echo "  echo \"deb [signed-by=/usr/share/keyrings/stremio-debian.gpg] https://debian.vejeta.com plucky main non-free\" | sudo tee /etc/apt/sources.list.d/stremio.list"
