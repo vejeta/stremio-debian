@@ -480,11 +480,11 @@ jobs:
 
               <h3>Step 1: Add repository GPG key</h3>
               <pre>sudo mkdir -p /etc/apt/keyrings
-wget -qO - https://debian.vejeta.com/key.gpg | sudo gpg --dearmor -o /etc/apt/keyrings/stremio-debian.gpg</pre>
+              wget -qO - https://debian.vejeta.com/key.gpg | sudo gpg --dearmor -o /etc/apt/keyrings/stremio-debian.gpg</pre>
 
               <p>Verify the key fingerprint matches:</p>
               <pre>gpg --show-keys /etc/apt/keyrings/stremio-debian.gpg
-# Expected: 2A84 0ED0 0DE6 69F4 219B  8B33 02A7 9E3B 8215 1695</pre>
+              # Expected: 2A84 0ED0 0DE6 69F4 219B  8B33 02A7 9E3B 8215 1695</pre>
 
               <h3>Step 2: Add repository source</h3>
 
