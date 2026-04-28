@@ -409,6 +409,11 @@ jobs:
               <meta charset="UTF-8">
               <meta name="viewport" content="width=device-width, initial-scale=1.0">
               <title>Stremio Debian Repository</title>
+              <meta name="description" content="Unofficial APT repository for Stremio media center. Debian and Ubuntu packages for amd64 and arm64.">
+              <meta property="og:title" content="Stremio Debian Repository">
+              <meta property="og:description" content="Unofficial APT repository for Stremio media center. Packages for Debian bookworm, trixie, sid and Ubuntu, built from source following Debian standards.">
+              <meta property="og:url" content="https://debian.vejeta.com">
+              <meta property="og:type" content="website">
               <style>
                   body { font-family: system-ui, -apple-system, sans-serif; max-width: 850px; margin: 50px auto; padding: 20px; line-height: 1.6; color: #333; }
                   code { background: #f4f4f4; padding: 2px 6px; border-radius: 3px; }
@@ -474,7 +479,12 @@ jobs:
               <h2>Quick Installation</h2>
 
               <h3>Step 1: Add repository GPG key</h3>
-              <pre>wget -qO - https://debian.vejeta.com/key.gpg | sudo gpg --dearmor -o /usr/share/keyrings/stremio-debian.gpg</pre>
+              <pre>sudo mkdir -p /etc/apt/keyrings
+wget -qO - https://debian.vejeta.com/key.gpg | sudo gpg --dearmor -o /etc/apt/keyrings/stremio-debian.gpg</pre>
+
+              <p>Verify the key fingerprint matches:</p>
+              <pre>gpg --show-keys /etc/apt/keyrings/stremio-debian.gpg
+# Expected: 2A84 0ED0 0DE6 69F4 219B  8B33 02A7 9E3B 8215 1695</pre>
 
               <h3>Step 2: Add repository source</h3>
 
@@ -484,27 +494,27 @@ jobs:
                   <tr><th>Distribution</th><th>Command</th></tr>
                   <tr>
                       <td>Debian testing</td>
-                      <td><pre>echo "deb [signed-by=/usr/share/keyrings/stremio-debian.gpg] https://debian.vejeta.com testing main non-free" | sudo tee /etc/apt/sources.list.d/stremio.list</pre></td>
+                      <td><pre>echo "deb [signed-by=/etc/apt/keyrings/stremio-debian.gpg] https://debian.vejeta.com testing main non-free" | sudo tee /etc/apt/sources.list.d/stremio.list</pre></td>
                   </tr>
                   <tr>
                       <td>Debian trixie (13)</td>
-                      <td><pre>echo "deb [signed-by=/usr/share/keyrings/stremio-debian.gpg] https://debian.vejeta.com trixie main non-free" | sudo tee /etc/apt/sources.list.d/stremio.list</pre></td>
+                      <td><pre>echo "deb [signed-by=/etc/apt/keyrings/stremio-debian.gpg] https://debian.vejeta.com trixie main non-free" | sudo tee /etc/apt/sources.list.d/stremio.list</pre></td>
                   </tr>
                   <tr>
                       <td>Debian bookworm (12)</td>
-                      <td><pre>echo "deb [signed-by=/usr/share/keyrings/stremio-debian.gpg] https://debian.vejeta.com bookworm main non-free" | sudo tee /etc/apt/sources.list.d/stremio.list</pre></td>
+                      <td><pre>echo "deb [signed-by=/etc/apt/keyrings/stremio-debian.gpg] https://debian.vejeta.com bookworm main non-free" | sudo tee /etc/apt/sources.list.d/stremio.list</pre></td>
                   </tr>
                   <tr>
                       <td>Debian sid / Kali</td>
-                      <td><pre>echo "deb [signed-by=/usr/share/keyrings/stremio-debian.gpg] https://debian.vejeta.com sid main non-free" | sudo tee /etc/apt/sources.list.d/stremio.list</pre></td>
+                      <td><pre>echo "deb [signed-by=/etc/apt/keyrings/stremio-debian.gpg] https://debian.vejeta.com sid main non-free" | sudo tee /etc/apt/sources.list.d/stremio.list</pre></td>
                   </tr>
                   <tr>
                       <td>Ubuntu 24.04 (noble)</td>
-                      <td><pre>echo "deb [signed-by=/usr/share/keyrings/stremio-debian.gpg] https://debian.vejeta.com noble main non-free" | sudo tee /etc/apt/sources.list.d/stremio.list</pre></td>
+                      <td><pre>echo "deb [signed-by=/etc/apt/keyrings/stremio-debian.gpg] https://debian.vejeta.com noble main non-free" | sudo tee /etc/apt/sources.list.d/stremio.list</pre></td>
                   </tr>
                   <tr>
                       <td>Ubuntu 25.04 (plucky)</td>
-                      <td><pre>echo "deb [signed-by=/usr/share/keyrings/stremio-debian.gpg] https://debian.vejeta.com plucky main non-free" | sudo tee /etc/apt/sources.list.d/stremio.list</pre></td>
+                      <td><pre>echo "deb [signed-by=/etc/apt/keyrings/stremio-debian.gpg] https://debian.vejeta.com plucky main non-free" | sudo tee /etc/apt/sources.list.d/stremio.list</pre></td>
                   </tr>
               </table>
 
@@ -546,6 +556,22 @@ jobs:
                   <tr><td><strong>librust-cef-dev</strong></td><td>Rust CEF bindings</td><td>main</td><td>sid</td></tr>
                   <tr><td><strong>librust-cef-dll-sys-dev</strong></td><td>Rust CEF FFI bindings</td><td>main</td><td>sid</td></tr>
               </table>
+
+              <h2>Security &amp; Verification</h2>
+
+              <p>All packages are signed with the maintainer's GPG key. The repository metadata (<code>InRelease</code>, <code>Release.gpg</code>) is signed on every deploy.</p>
+
+              <table>
+                  <tr><th>Property</th><th>Value</th></tr>
+                  <tr><td>Key fingerprint</td><td><code>2A84 0ED0 0DE6 69F4 219B  8B33 02A7 9E3B 8215 1695</code></td></tr>
+                  <tr><td>Key type</td><td>RSA 4096-bit</td></tr>
+                  <tr><td>Maintainer</td><td>Juan Manuel M&eacute;ndez Rey &lt;juan.mendezr@proton.me&gt;</td></tr>
+                  <tr><td>Keyserver</td><td><a href="https://keys.openpgp.org/search?q=2A840ED00DE669F4219B8B3302A79E3B82151695">keys.openpgp.org</a></td></tr>
+                  <tr><td>Build pipeline</td><td><a href="https://github.com/vejeta/stremio-debian/actions">GitHub Actions</a> (all builds are public and auditable)</td></tr>
+              </table>
+
+              <p>To verify the installed key matches:</p>
+              <pre>gpg --show-keys /etc/apt/keyrings/stremio-debian.gpg 2&gt;/dev/null | grep -q "2A840ED00DE669F4219B8B3302A79E3B82151695" &amp;&amp; echo "Key OK" || echo "Key MISMATCH"</pre>
 
               <h2>Source Code</h2>
 
@@ -617,20 +643,21 @@ jobs:
           echo "Users can add the repository with:"
           echo ""
           echo "For testing:"
-          echo "  wget -qO - https://debian.vejeta.com/key.gpg | sudo gpg --dearmor -o /usr/share/keyrings/stremio-debian.gpg"
-          echo "  echo \"deb [signed-by=/usr/share/keyrings/stremio-debian.gpg] https://debian.vejeta.com testing main non-free\" | sudo tee /etc/apt/sources.list.d/stremio.list"
+          echo "  sudo mkdir -p /etc/apt/keyrings"
+          echo "  wget -qO - https://debian.vejeta.com/key.gpg | sudo gpg --dearmor -o /etc/apt/keyrings/stremio-debian.gpg"
+          echo "  echo \"deb [signed-by=/etc/apt/keyrings/stremio-debian.gpg] https://debian.vejeta.com testing main non-free\" | sudo tee /etc/apt/sources.list.d/stremio.list"
           echo ""
           echo "For trixie:"
-          echo "  echo \"deb [signed-by=/usr/share/keyrings/stremio-debian.gpg] https://debian.vejeta.com trixie main non-free\" | sudo tee /etc/apt/sources.list.d/stremio.list"
+          echo "  echo \"deb [signed-by=/etc/apt/keyrings/stremio-debian.gpg] https://debian.vejeta.com trixie main non-free\" | sudo tee /etc/apt/sources.list.d/stremio.list"
           echo ""
           echo "For bookworm:"
-          echo "  echo \"deb [signed-by=/usr/share/keyrings/stremio-debian.gpg] https://debian.vejeta.com bookworm main non-free\" | sudo tee /etc/apt/sources.list.d/stremio.list"
+          echo "  echo \"deb [signed-by=/etc/apt/keyrings/stremio-debian.gpg] https://debian.vejeta.com bookworm main non-free\" | sudo tee /etc/apt/sources.list.d/stremio.list"
           echo ""
           echo "For sid/Kali:"
-          echo "  echo \"deb [signed-by=/usr/share/keyrings/stremio-debian.gpg] https://debian.vejeta.com sid main non-free\" | sudo tee /etc/apt/sources.list.d/stremio.list"
+          echo "  echo \"deb [signed-by=/etc/apt/keyrings/stremio-debian.gpg] https://debian.vejeta.com sid main non-free\" | sudo tee /etc/apt/sources.list.d/stremio.list"
           echo ""
           echo "For Ubuntu 24.04 LTS (noble) - EXPERIMENTAL:"
-          echo "  echo \"deb [signed-by=/usr/share/keyrings/stremio-debian.gpg] https://debian.vejeta.com noble main non-free\" | sudo tee /etc/apt/sources.list.d/stremio.list"
+          echo "  echo \"deb [signed-by=/etc/apt/keyrings/stremio-debian.gpg] https://debian.vejeta.com noble main non-free\" | sudo tee /etc/apt/sources.list.d/stremio.list"
           echo ""
           echo "For Ubuntu 25.04 (plucky) - EXPERIMENTAL (stremio-qt6):"
-          echo "  echo \"deb [signed-by=/usr/share/keyrings/stremio-debian.gpg] https://debian.vejeta.com plucky main non-free\" | sudo tee /etc/apt/sources.list.d/stremio.list"
+          echo "  echo \"deb [signed-by=/etc/apt/keyrings/stremio-debian.gpg] https://debian.vejeta.com plucky main non-free\" | sudo tee /etc/apt/sources.list.d/stremio.list"
