@@ -410,222 +410,162 @@ jobs:
               <meta name="viewport" content="width=device-width, initial-scale=1.0">
               <title>Stremio Debian Repository</title>
               <style>
-                  body {
-                      font-family: system-ui, -apple-system, sans-serif;
-                      max-width: 800px;
-                      margin: 50px auto;
-                      padding: 20px;
-                      line-height: 1.6;
-                  }
-                  code {
-                      background: #f4f4f4;
-                      padding: 2px 6px;
-                      border-radius: 3px;
-                  }
-                  pre {
-                      background: #f4f4f4;
-                      padding: 15px;
-                      border-radius: 5px;
-                      overflow-x: auto;
-                  }
-                  .warning {
-                      background: #fff3cd;
-                      border-left: 4px solid #ffc107;
-                      padding: 15px;
-                      margin: 20px 0;
-                  }
-                  .info {
-                      background: #d1ecf1;
-                      border-left: 4px solid #0c5460;
-                      padding: 15px;
-                      margin: 20px 0;
-                  }
-                  h1 { color: #333; }
-                  h2 { color: #555; margin-top: 30px; }
+                  body { font-family: system-ui, -apple-system, sans-serif; max-width: 850px; margin: 50px auto; padding: 20px; line-height: 1.6; color: #333; }
+                  code { background: #f4f4f4; padding: 2px 6px; border-radius: 3px; }
+                  pre { background: #f4f4f4; padding: 15px; border-radius: 5px; overflow-x: auto; }
+                  .warning { background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0; }
+                  .info { background: #d1ecf1; border-left: 4px solid #0c5460; padding: 15px; margin: 20px 0; }
+                  h1 { color: #222; } h2 { color: #444; margin-top: 35px; } h3 { color: #555; }
+                  table { border-collapse: collapse; width: 100%; margin: 15px 0; }
+                  th, td { border: 1px solid #ddd; padding: 8px 12px; text-align: left; }
+                  th { background: #f8f8f8; }
+                  .badge { display: inline-block; padding: 2px 8px; border-radius: 3px; font-size: 0.85em; font-weight: bold; }
+                  .badge-active { background: #d4edda; color: #155724; }
+                  .badge-experimental { background: #fff3cd; color: #856404; }
+                  .badge-legacy { background: #f8d7da; color: #721c24; }
               </style>
           </head>
           <body>
-              <h1>🎬 Stremio Debian Repository</h1>
+              <h1>Stremio Debian Repository</h1>
 
-              <p>Unofficial Debian packages for <strong>Stremio</strong> media center, built from source and following Debian packaging standards. Available for <strong>amd64</strong> and <strong>arm64</strong> (Raspberry Pi) architectures.</p>
-
-              <div class="warning">
-                  <strong>⚠️ Unofficial Repository:</strong> These packages are not part of the official Debian archive. Use at your own discretion.
-              </div>
-
-              <div class="info">
-                  <strong>📦 Official Debian Submission Status:</strong><br>
-                  <p>These packages are being submitted to official Debian:</p>
-                  <ul>
-                      <li><strong>stremio</strong> (Qt5): <a href="https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=943703">ITP #943703</a></li>
-                      <li><strong>chromium-embedded-framework</strong>: <a href="https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=915400">ITP #915400</a></li>
-                      <li><strong>stremio-gtk</strong>: <a href="https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=1119815">ITP #1119815</a></li>
-                      <li><strong>rust-cef-dll-sys</strong>: <a href="https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=1128612">ITP #1128612</a></li>
-                      <li><strong>rust-cef</strong>: <a href="https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=1128610">ITP #1128610</a></li>
-                  </ul>
-                  <p>The maintainer (<a href="mailto:vejeta@gmail.com">Juan Manuel Méndez Rey</a>) is the same for both this repository and the official Debian submissions.</p>
-              </div>
+              <p>Unofficial Debian packages for <strong>Stremio</strong> media center. Built from source, following Debian packaging standards.</p>
 
               <div class="warning">
-                  <strong>⚠️ Qt5 End-of-Life Notice:</strong><br>
-                  <p>The original <strong>stremio</strong> client uses Qt5/QtWebEngine, but <strong>Qt5 has reached End-of-Life</strong> and is being removed from Debian. Since QtWebEngine is not available for Qt6, a new client (<strong>stremio-gtk</strong>) was developed using GTK4/Adwaita with CEF (Chromium Embedded Framework).</p>
-                  <p><strong>stremio-gtk</strong> is the forward-compatible client that will continue to work as Qt5 is phased out. It is currently available for Debian sid only.</p>
+                  <strong>Unofficial Repository:</strong> These packages are not part of the official Debian archive. Use at your own discretion.
               </div>
+
+              <h2>Available Clients</h2>
+
+              <p>Three Stremio client packages are available. Choose the one that fits your system:</p>
+
+              <table>
+                  <tr>
+                      <th>Package</th>
+                      <th>Toolkit</th>
+                      <th>Distributions</th>
+                      <th>Architectures</th>
+                      <th>Status</th>
+                  </tr>
+                  <tr>
+                      <td><strong>stremio-gtk</strong></td>
+                      <td>GTK4 / CEF</td>
+                      <td>Debian sid</td>
+                      <td>amd64</td>
+                      <td><span class="badge badge-active">Recommended</span></td>
+                  </tr>
+                  <tr>
+                      <td><strong>stremio-qt6</strong></td>
+                      <td>Qt6 / QtWebEngine</td>
+                      <td>Debian trixie, sid; Ubuntu plucky</td>
+                      <td>amd64, arm64</td>
+                      <td><span class="badge badge-experimental">Experimental</span></td>
+                  </tr>
+                  <tr>
+                      <td><strong>stremio</strong></td>
+                      <td>Qt5 / QtWebEngine</td>
+                      <td>Debian bookworm, trixie, testing, sid; Ubuntu noble</td>
+                      <td>amd64, arm64</td>
+                      <td><span class="badge badge-legacy">Legacy (Qt5 EOL)</span></td>
+                  </tr>
+              </table>
+
+              <p>All clients require <strong>stremio-server</strong> (proprietary, <code>non-free</code> component) for BitTorrent streaming and casting.</p>
 
               <h2>Quick Installation</h2>
 
-              <h3>1. Add repository GPG key</h3>
+              <h3>Step 1: Add repository GPG key</h3>
               <pre>wget -qO - https://debian.vejeta.com/key.gpg | sudo gpg --dearmor -o /usr/share/keyrings/stremio-debian.gpg</pre>
 
-              <h3>2. Add repository to sources</h3>
+              <h3>Step 2: Add repository source</h3>
 
-              <p><strong>For Debian testing (rolling) - Use if you have both trixie + testing sources:</strong></p>
-              <pre>echo "deb [signed-by=/usr/share/keyrings/stremio-debian.gpg] https://debian.vejeta.com testing main non-free" | sudo tee /etc/apt/sources.list.d/stremio.list</pre>
+              <p>Choose your distribution:</p>
 
-              <p><strong>For Debian 13 (trixie - stable) - Use if you ONLY have trixie sources:</strong></p>
-              <pre>echo "deb [signed-by=/usr/share/keyrings/stremio-debian.gpg] https://debian.vejeta.com trixie main non-free" | sudo tee /etc/apt/sources.list.d/stremio.list</pre>
+              <table>
+                  <tr><th>Distribution</th><th>Command</th></tr>
+                  <tr>
+                      <td>Debian testing</td>
+                      <td><pre>echo "deb [signed-by=/usr/share/keyrings/stremio-debian.gpg] https://debian.vejeta.com testing main non-free" | sudo tee /etc/apt/sources.list.d/stremio.list</pre></td>
+                  </tr>
+                  <tr>
+                      <td>Debian trixie (13)</td>
+                      <td><pre>echo "deb [signed-by=/usr/share/keyrings/stremio-debian.gpg] https://debian.vejeta.com trixie main non-free" | sudo tee /etc/apt/sources.list.d/stremio.list</pre></td>
+                  </tr>
+                  <tr>
+                      <td>Debian bookworm (12)</td>
+                      <td><pre>echo "deb [signed-by=/usr/share/keyrings/stremio-debian.gpg] https://debian.vejeta.com bookworm main non-free" | sudo tee /etc/apt/sources.list.d/stremio.list</pre></td>
+                  </tr>
+                  <tr>
+                      <td>Debian sid / Kali</td>
+                      <td><pre>echo "deb [signed-by=/usr/share/keyrings/stremio-debian.gpg] https://debian.vejeta.com sid main non-free" | sudo tee /etc/apt/sources.list.d/stremio.list</pre></td>
+                  </tr>
+                  <tr>
+                      <td>Ubuntu 24.04 (noble)</td>
+                      <td><pre>echo "deb [signed-by=/usr/share/keyrings/stremio-debian.gpg] https://debian.vejeta.com noble main non-free" | sudo tee /etc/apt/sources.list.d/stremio.list</pre></td>
+                  </tr>
+                  <tr>
+                      <td>Ubuntu 25.04 (plucky)</td>
+                      <td><pre>echo "deb [signed-by=/usr/share/keyrings/stremio-debian.gpg] https://debian.vejeta.com plucky main non-free" | sudo tee /etc/apt/sources.list.d/stremio.list</pre></td>
+                  </tr>
+              </table>
 
-              <p><strong>For Debian 12 (bookworm - oldstable):</strong></p>
-              <pre>echo "deb [signed-by=/usr/share/keyrings/stremio-debian.gpg] https://debian.vejeta.com bookworm main non-free" | sudo tee /etc/apt/sources.list.d/stremio.list</pre>
+              <h3>Step 3: Install</h3>
 
-              <p><strong>For Debian sid (unstable) / Kali Rolling:</strong></p>
-              <pre>echo "deb [signed-by=/usr/share/keyrings/stremio-debian.gpg] https://debian.vejeta.com sid main non-free" | sudo tee /etc/apt/sources.list.d/stremio.list</pre>
+              <pre>sudo apt update</pre>
 
-              <p><strong>For Ubuntu 24.04 LTS (Noble Numbat) - EXPERIMENTAL:</strong></p>
-              <pre>echo "deb [signed-by=/usr/share/keyrings/stremio-debian.gpg] https://debian.vejeta.com noble main non-free" | sudo tee /etc/apt/sources.list.d/stremio.list</pre>
+              <p>Then install the client for your system:</p>
 
-              <p><strong>For Ubuntu 25.04 (Plucky Puffin) - EXPERIMENTAL (stremio-qt6):</strong></p>
-              <pre>echo "deb [signed-by=/usr/share/keyrings/stremio-debian.gpg] https://debian.vejeta.com plucky main non-free" | sudo tee /etc/apt/sources.list.d/stremio.list</pre>
+              <table>
+                  <tr><th>Client</th><th>Install command</th></tr>
+                  <tr><td>stremio-gtk (Debian sid)</td><td><code>sudo apt install stremio-gtk stremio-server</code></td></tr>
+                  <tr><td>stremio-qt6 (trixie/sid/plucky)</td><td><code>sudo apt install stremio-qt6 stremio-server</code></td></tr>
+                  <tr><td>stremio Qt5 (all others)</td><td><code>sudo apt install stremio stremio-server</code></td></tr>
+              </table>
 
-              <div class="warning">
-                  <strong>⚠️ Ubuntu Support is Experimental:</strong> Ubuntu packages are built automatically but have limited testing. Community feedback is welcome via GitHub Issues.
-              </div>
+              <h2>About the Clients</h2>
 
-              <h3>3. Install Stremio</h3>
-              <pre>sudo apt update
-          sudo apt install stremio stremio-server</pre>
+              <h3>stremio-gtk (Recommended)</h3>
+              <p>Modern GTK4/Adwaita client using CEF (Chromium Embedded Framework). Native Wayland support, follows GNOME HIG. This is the actively developed successor to the Qt5 client. CEF dependencies (libcef147, libcef-common) are installed automatically.</p>
 
-              <h2>Supported Distributions</h2>
-              <ul>
-                  <li><strong>Debian testing</strong> - Rolling distribution (use if you have both trixie + testing sources)</li>
-                  <li><strong>Debian 13 (trixie)</strong> - Current stable release (use if you only have trixie sources)</li>
-                  <li><strong>Debian 12 (bookworm)</strong> - Previous stable release</li>
-                  <li><strong>Debian sid (unstable)</strong> - Rolling release (compatible with Kali Linux)</li>
-                  <li><strong>Ubuntu 24.04 LTS (noble)</strong> - EXPERIMENTAL (community testing)</li>
-                  <li><strong>Ubuntu 25.04 (plucky)</strong> - EXPERIMENTAL (stremio-qt6 only)</li>
-              </ul>
+              <h3>stremio-qt6 (Experimental)</h3>
+              <p>Experimental Qt6 port for users who prefer KDE/Plasma or Qt-based desktop environments. Provides a non-deprecated Qt client as a workaround while the Qt5 version reaches end-of-life. Can be installed alongside stremio-gtk.</p>
 
-              <h2>Available Packages</h2>
+              <h3>stremio (Legacy)</h3>
+              <p>Original Qt5/QtWebEngine client. Still functional on bookworm and trixie but will not receive updates once Qt5 is removed from Debian.</p>
 
-              <h3>Main Component (Free/Open Source)</h3>
-              <ul>
-                  <li><strong>stremio-qt6</strong>: Experimental Qt6/QML desktop client for KDE/Plasma users (amd64, arm64) - <strong>Debian trixie, sid &amp; Ubuntu plucky</strong></li>
-              <li><strong>stremio</strong> (Qt5): Legacy Qt5/QML desktop client (amd64, arm64) - bookworm, trixie, testing</li>
-                  <li><strong>stremio-gtk</strong>: GTK4/Adwaita desktop client (amd64) - <strong>Debian sid only</strong></li>
-                  <li><strong>libcef147</strong>: CEF runtime library (amd64) - <strong>Debian sid only</strong></li>
-                  <li><strong>libcef-dev</strong>: CEF development headers (amd64) - <strong>Debian sid only</strong></li>
-                  <li><strong>libcef-common</strong>: CEF runtime resources (all) - <strong>Debian sid only</strong></li>
-                  <li><strong>librust-cef-dll-sys-dev</strong>: Rust FFI bindings to CEF (amd64) - <strong>Debian sid only</strong></li>
-                  <li><strong>librust-cef-dev</strong>: Rust high-level bindings to CEF (amd64) - <strong>Debian sid only</strong></li>
-              </ul>
+              <h2>All Packages</h2>
 
-              <h3>Non-Free Component (Proprietary)</h3>
-              <ul>
-                  <li><strong>stremio-server</strong>: BitTorrent streaming server (all architectures) - all distributions</li>
-              </ul>
-
-              <h2>stremio-gtk Installation (Debian sid only)</h2>
-
-              <p><strong>stremio-gtk</strong> is a modern GTK4/Adwaita-based client that uses CEF (Chromium Embedded Framework). It is the successor to the Qt5-based client for systems where Qt5/QtWebEngine is no longer available.</p>
-
-              <div class="info">
-                  <strong>Requirements:</strong> Debian sid (unstable) with amd64 architecture.
-              </div>
-
-              <pre>sudo apt update
-          sudo apt install stremio-gtk stremio-server</pre>
-
-              <p>CEF packages (libcef147, libcef-common) and Rust CEF bindings (librust-cef-dev, librust-cef-dll-sys-dev) are installed automatically as dependencies.</p>
-
-              <h3>Why use stremio-gtk?</h3>
-              <ul>
-                  <li>Modern GTK4/Adwaita interface following GNOME HIG</li>
-                  <li>Uses CEF (Chromium Embedded Framework) - actively maintained</li>
-                  <li>Future-proof: works as Qt5/QtWebEngine are phased out</li>
-                  <li>Native Wayland support</li>
-              </ul>
-
-              <h2>stremio-qt6 Installation (Debian trixie, sid, Ubuntu plucky)</h2>
-
-              <p><strong>stremio-qt6</strong> is an experimental Qt6 port of the Stremio client, intended for users who prefer KDE/Plasma or Qt-based desktop environments.</p>
-
-              <div class="info">
-                  <strong>Requirements:</strong> Debian trixie, sid, or Ubuntu 25.04 (plucky) with amd64 or arm64 architecture.
-              </div>
-
-              <pre>sudo apt update
-          sudo apt install stremio-qt6 stremio-server</pre>
-
-              <p><strong>Note:</strong> stremio-qt6 can be installed alongside stremio-gtk. The recommended client for Debian sid remains stremio-gtk.</p>
-
-              <h2>CEF Packages Installation (Debian sid only)</h2>
-
-              <p>The <strong>Chromium Embedded Framework (CEF)</strong> packages are available for developers and users who want to try them while the package is being reviewed for inclusion in Debian experimental (<a href="https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=915400">ITP #915400</a>).</p>
-
-              <h3>Available CEF Packages</h3>
-              <ul>
-                  <li><strong>libcef147</strong> - CEF runtime library (required for applications using CEF)</li>
-                  <li><strong>libcef-common</strong> - Runtime resources: locales, PAK files, and other assets</li>
-                  <li><strong>libcef-dev</strong> - Development headers for building applications against CEF</li>
-              </ul>
-
-              <h3>Installation</h3>
-
-              <p><strong>For running CEF-based applications (e.g., stremio-gtk):</strong></p>
-              <pre>sudo apt update
-          sudo apt install libcef147 libcef-common</pre>
-
-              <p><strong>For development (building against CEF):</strong></p>
-              <pre>sudo apt update
-          sudo apt install libcef-dev libcef-common</pre>
-
-              <div class="info">
-                  <strong>Note:</strong> CEF packages are only available for Debian sid (unstable) on amd64 architecture due to clang-19 build requirements. These packages are installed automatically when you install stremio-gtk.
-              </div>
-
-              <h2>Supported Architectures</h2>
-
-              <ul>
-                  <li><strong>amd64</strong> - Standard x86_64 desktop/laptop computers</li>
-                  <li><strong>arm64</strong> - Raspberry Pi 3/4/5 (64-bit) and other ARM64 devices</li>
-              </ul>
-
-              <h2>Manual Download</h2>
-
-              <p>Download .deb files directly from <a href="https://github.com/vejeta/stremio-debian/releases">GitHub Releases</a></p>
+              <table>
+                  <tr><th>Package</th><th>Description</th><th>Component</th><th>Distributions</th></tr>
+                  <tr><td><strong>stremio-gtk</strong></td><td>GTK4/CEF Stremio client</td><td>main</td><td>sid</td></tr>
+                  <tr><td><strong>stremio-qt6</strong></td><td>Qt6 Stremio client</td><td>main</td><td>trixie, sid, plucky</td></tr>
+                  <tr><td><strong>stremio</strong></td><td>Qt5 Stremio client (legacy)</td><td>main</td><td>bookworm, trixie, testing, sid, noble</td></tr>
+                  <tr><td><strong>stremio-server</strong></td><td>Streaming server (proprietary)</td><td>non-free</td><td>all</td></tr>
+                  <tr><td><strong>libcef147</strong></td><td>CEF runtime library</td><td>main</td><td>sid</td></tr>
+                  <tr><td><strong>libcef-common</strong></td><td>CEF resources (locales, PAK files)</td><td>main</td><td>sid</td></tr>
+                  <tr><td><strong>libcef-dev</strong></td><td>CEF development headers</td><td>main</td><td>sid</td></tr>
+                  <tr><td><strong>librust-cef-dev</strong></td><td>Rust CEF bindings</td><td>main</td><td>sid</td></tr>
+                  <tr><td><strong>librust-cef-dll-sys-dev</strong></td><td>Rust CEF FFI bindings</td><td>main</td><td>sid</td></tr>
+              </table>
 
               <h2>Source Code</h2>
 
-              <p>All Debian packaging source is maintained on Salsa Debian GitLab:</p>
+              <p>Debian packaging is maintained on <a href="https://salsa.debian.org/mendezr">Salsa Debian GitLab</a>. Build infrastructure: <a href="https://github.com/vejeta/stremio-debian">github.com/vejeta/stremio-debian</a>.</p>
 
               <ul>
-                  <li><a href="https://salsa.debian.org/mendezr/stremio">stremio</a> - Qt5 client (GPL-3.0+)</li>
-                  <li><a href="https://salsa.debian.org/mendezr/stremio-server">stremio-server</a> - Streaming server (Proprietary)</li>
-                  <li><a href="https://salsa.debian.org/mendezr/stremio-gtk">stremio-gtk</a> - GTK4 client (GPL-3.0+)</li>
-                  <li><a href="https://salsa.debian.org/mendezr/chromium-embedded-framework">chromium-embedded-framework</a> - CEF (BSD-3-Clause)</li>
-                  <li><a href="https://salsa.debian.org/mendezr/rust-cef-dll-sys">rust-cef-dll-sys</a> - Rust FFI bindings to CEF (Apache-2.0 OR MIT)</li>
-                  <li><a href="https://salsa.debian.org/mendezr/rust-cef">rust-cef</a> - Rust bindings to CEF (Apache-2.0 OR MIT)</li>
+                  <li><a href="https://salsa.debian.org/mendezr/stremio-gtk">stremio-gtk</a> (GPL-3.0) &mdash; <a href="https://bugs.debian.org/1119815">ITP #1119815</a></li>
+                  <li><a href="https://salsa.debian.org/mendezr/stremio-qt6">stremio-qt6</a> (GPL-3.0) &mdash; upstream: <a href="https://github.com/vejeta/stremio-shell/tree/qt6-migration">vejeta/stremio-shell qt6-migration</a></li>
+                  <li><a href="https://salsa.debian.org/mendezr/stremio">stremio</a> (GPL-3.0) &mdash; <a href="https://bugs.debian.org/943703">ITP #943703</a></li>
+                  <li><a href="https://salsa.debian.org/mendezr/stremio-server">stremio-server</a> (Proprietary)</li>
+                  <li><a href="https://salsa.debian.org/mendezr/chromium-embedded-framework">chromium-embedded-framework</a> (BSD-3-Clause) &mdash; <a href="https://bugs.debian.org/915400">ITP #915400</a></li>
+                  <li><a href="https://salsa.debian.org/mendezr/rust-cef">rust-cef</a> / <a href="https://salsa.debian.org/mendezr/rust-cef-dll-sys">rust-cef-dll-sys</a> (Apache-2.0 OR MIT)</li>
               </ul>
-
-              <p>Build infrastructure: <a href="https://github.com/vejeta/stremio-debian">github.com/vejeta/stremio-debian</a></p>
 
               <h2>Support</h2>
 
-              <p>Report issues at <a href="https://github.com/vejeta/stremio-debian/issues">GitHub Issues</a></p>
+              <p>Report issues at <a href="https://github.com/vejeta/stremio-debian/issues">GitHub Issues</a>. Download .deb files directly from <a href="https://github.com/vejeta/stremio-debian/releases">GitHub Releases</a>.</p>
 
               <hr>
-
-              <p><small>Built with ❤️ using GitHub Actions • Hosted on GitHub Pages • Updated: BUILD_DATE</small></p>
+              <p><small>Hosted on GitHub Pages &bull; Updated: BUILD_DATE</small></p>
           </body>
           </html>
           EOF
