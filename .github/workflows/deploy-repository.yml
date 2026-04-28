@@ -435,8 +435,8 @@ jobs:
 
               <p>Unofficial Debian packages for <strong>Stremio</strong> media center. Built from source, following Debian packaging standards.</p>
 
-              <div class="warning">
-                  <strong>Unofficial Repository:</strong> These packages are not part of the official Debian archive. Use at your own discretion.
+              <div class="info">
+                  <strong>Third-party repository:</strong> These packages are not yet part of the official Debian archive. They have been submitted for review via ITPs (Intent to Package) and are pending sponsorship. See <a href="#source-code">Source Code &amp; ITPs</a> below for details.
               </div>
 
               <h2>Available Clients</h2>
@@ -573,7 +573,7 @@ jobs:
               <p>To verify the installed key matches:</p>
               <pre>gpg --show-keys /etc/apt/keyrings/stremio-debian.gpg 2&gt;/dev/null | grep -q "2A840ED00DE669F4219B8B3302A79E3B82151695" &amp;&amp; echo "Key OK" || echo "Key MISMATCH"</pre>
 
-              <h2>Source Code</h2>
+              <h2 id="source-code">Source Code &amp; ITPs</h2>
 
               <p>Debian packaging is maintained on <a href="https://salsa.debian.org/mendezr">Salsa Debian GitLab</a>. Build infrastructure: <a href="https://github.com/vejeta/stremio-debian">github.com/vejeta/stremio-debian</a>.</p>
 
