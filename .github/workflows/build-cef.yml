@@ -3,12 +3,8 @@ name: Build CEF Packages
 on:
   workflow_dispatch:
     inputs:
-      version:
-        description: 'CEF version to build (e.g., 144.0.7)'
-        required: true
-        type: string
       force_rebuild:
-        description: 'Force rebuild even if packages exist'
+        description: 'Force rebuild (re-download orig tarballs even if cached)'
         required: false
         default: false
         type: boolean
@@ -29,6 +25,11 @@ jobs:
     runs-on: [self-hosted, linux, x64, cef-builder]
     timeout-minutes: 1440  # 24 hours max
 
+    outputs:
+      upstream_version: ${{ steps.versions.outputs.upstream_version }}
+      full_version: ${{ steps.versions.outputs.full_version }}
+      cef_soname: ${{ steps.versions.outputs.cef_soname }}
+
     steps:
       - name: Verify runner capabilities
         run: |
@@ -38,7 +39,6 @@ jobs:
           echo "RAM: $(free -h | grep Mem | awk '{print $2}')"
           echo "Disk space: $(df -h / | tail -1 | awk '{print $4}')"
 
-          # Verify minimum requirements
           CORES=$(nproc)
           RAM_GB=$(free -g | grep Mem | awk '{print $2}')
           DISK_GB=$(df -BG / | tail -1 | awk '{print $4}' | tr -d 'G')
@@ -58,136 +58,151 @@ jobs:
             exit 1
           fi
 
+          for cmd in sbuild dpkg-parsechangelog dpkg-source; do
+            if ! command -v $cmd &>/dev/null; then
+              echo "ERROR: $cmd is not installed"
+              exit 1
+            fi
+          done
+
+          echo "sbuild: $(sbuild --version 2>&1 | head -1)"
           echo "Runner meets requirements"
 
-      - name: Checkout repository with submodules
-        uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-          submodules: recursive
-
-      - name: Verify CEF submodule
-        run: |
-          if [ ! -d "chromium-embedded-framework/debian" ]; then
-            echo "ERROR: chromium-embedded-framework submodule not properly checked out"
-            exit 1
-          fi
-          echo "CEF submodule verified"
-          ls -la chromium-embedded-framework/
-
-      - name: Configure git
+      - name: Clone or update chromium source (cef branch)
         run: |
           git config --global user.email "$DEBEMAIL"
           git config --global user.name "$DEBFULLNAME"
           git config --global --add safe.directory '*'
 
-      - name: Clean up old tarballs and build artifacts
+          if [ -d "chromium" ]; then
+            echo "Updating existing chromium repo..."
+            cd chromium
+            git fetch origin cef
+            git checkout cef
+            git reset --hard origin/cef
+            cd ..
+          else
+            echo "Cloning chromium repo (cef branch)..."
+            git clone --branch cef --single-branch \
+              https://salsa.debian.org/mendezr/chromium.git
+          fi
+
+      - name: Determine versions
+        id: versions
         run: |
-          # Self-hosted runners persist workspace, so clean up any cached tarballs
-          # to ensure we use fresh ones with correct structure
-          echo "=== Cleaning up old artifacts ==="
-          rm -f chromium-embedded-framework_*.orig*.tar.xz
-          rm -f chromium-embedded-framework_*.dsc
-          rm -f chromium-embedded-framework_*.debian.tar.xz
-          rm -f chromium_*.tar.xz
-          rm -rf chromium-embedded-framework-*/
-          rm -rf depot-tools cef-tmp
-          # Clean stale build artifacts from submodule (self-hosted runners persist these)
-          git -C chromium-embedded-framework clean -fdx --exclude=debian
-          echo "=== Cleanup complete ==="
+          UPVER=$(dpkg-parsechangelog -l chromium/debian/changelog -S Version | sed 's/-.*//')
+          FULLVER=$(dpkg-parsechangelog -l chromium/debian/changelog -S Version)
+          CEF_SONAME=$(echo "$UPVER" | cut -d. -f1)
 
-      - name: Obtain MUT tarballs
+          echo "Chromium upstream version: $UPVER"
+          echo "Full package version: $FULLVER"
+          echo "CEF soname: libcef$CEF_SONAME"
+
+          echo "upstream_version=$UPVER" >> "$GITHUB_OUTPUT"
+          echo "full_version=$FULLVER" >> "$GITHUB_OUTPUT"
+          echo "cef_soname=$CEF_SONAME" >> "$GITHUB_OUTPUT"
+
+      - name: Clean old build artifacts
         run: |
-          PKG="chromium-embedded-framework"
-          # Tarballs use upstream version from changelog (without debian revision)
-          # The workflow input version is used only for the release tag
-          UPSTREAM_VERSION=$(dpkg-parsechangelog -l ${PKG}/debian/changelog -S Version | cut -d'-' -f1)
-          CHROMIUM_VERSION=$(grep -oP 'CHROMIUM_VERSION\s*:=\s*\K[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' ${PKG}/debian/rules)
-          CEF_BRANCH=$(echo "$CHROMIUM_VERSION" | cut -d. -f3)
+          # Self-hosted runners persist workspace; clean stale artifacts
+          UPVER="${{ steps.versions.outputs.upstream_version }}"
+          rm -f chromium_*.dsc chromium_*.debian.tar.xz
+          rm -f libcef*.deb chromium_*_*.buildinfo chromium_*_*.changes
+          rm -rf tmp/dsc-build artifacts
 
-          echo "=== Creating MUT tarballs for upstream version $UPSTREAM_VERSION ==="
-          echo "CEF branch: $CEF_BRANCH, Chromium: $CHROMIUM_VERSION"
-          echo "=== (Release tag will use: ${{ github.event.inputs.version }}) ==="
+          # Remove tarballs from other versions (keep current if cached)
+          for f in chromium_*.orig*.tar.xz; do
+            [ -f "$f" ] || continue
+            case "$f" in
+              chromium_${UPVER}.orig*.tar.xz) ;; # keep current version
+              *) echo "Removing old tarball: $f"; rm -f "$f" ;;
+            esac
+          done
 
-          # Clean stale tarballs to prevent reusing old wrong-version tarballs
-          rm -f ${PKG}_*.orig*.tar.xz
+      - name: Obtain orig tarballs
+        run: |
+          UPVER="${{ steps.versions.outputs.upstream_version }}"
+          cd chromium
 
-          # Run the script from within the package directory
-          # Creates 4 MUT tarballs: orig, orig-chromium, orig-chromium-debian, orig-depot-tools
-          cd ${PKG}
-          chmod +x debian/scripts/get-orig-tarballs.sh
-          ./debian/scripts/get-orig-tarballs.sh "$UPSTREAM_VERSION" "$CEF_BRANCH" "$CHROMIUM_VERSION"
+          # Chromium source tarball (~860MB, repackaged from upstream)
+          if [ -f "../chromium_${UPVER}.orig.tar.xz" ] && [ "${{ inputs.force_rebuild }}" != "true" ]; then
+            echo "Chromium source tarball already cached"
+            ls -lh "../chromium_${UPVER}.orig.tar.xz"
+          else
+            echo "==> Downloading and repackaging Chromium source tarball (this takes a while)"
+            rm -f "../chromium_${UPVER}.orig.tar.xz"
+            make -f debian/rules get-orig-source
+          fi
+
+          # CEF component tarball (~1.9MB, cloned from Bitbucket)
+          if [ -f "../chromium_${UPVER}.orig-cef.tar.xz" ] && [ "${{ inputs.force_rebuild }}" != "true" ]; then
+            echo "CEF component tarball already cached"
+            ls -lh "../chromium_${UPVER}.orig-cef.tar.xz"
+          else
+            echo "==> Creating CEF component tarball"
+            rm -f "../chromium_${UPVER}.orig-cef.tar.xz"
+            make -f debian/rules get-cef-source
+          fi
+
           cd ..
+          echo "=== Orig tarballs ==="
+          ls -lh chromium_${UPVER}.orig*.tar.xz
 
-          # Verify all 4 MUT tarballs were created
-          echo "=== MUT tarballs created ==="
-          ls -lh ${PKG}_*.orig*.tar.xz
-
-      - name: Extract MUT source package
+      - name: Build source package (.dsc)
         run: |
-          # Use dpkg-source to properly build and extract the MUT source package.
-          # This handles all 4 components (cef, chromium, chromium-debian, depot-tools)
-          # and applies the debian/ overlay correctly.
-          PKG="chromium-embedded-framework"
-          VERSION=$(dpkg-parsechangelog -l ${PKG}/debian/changelog -S Version | cut -d'-' -f1)
-          BUILD_DIR="${PKG}-${VERSION}"
-          echo "Upstream version: $VERSION"
+          UPVER="${{ steps.versions.outputs.upstream_version }}"
+          FULLVER="${{ steps.versions.outputs.full_version }}"
 
-          # Clean any previous build directory (self-hosted runners persist workspace)
-          rm -rf "$BUILD_DIR"
+          # Must use clean extraction, not git working tree
+          rm -rf tmp/dsc-build
+          mkdir -p tmp/dsc-build
 
-          # Build source package (.dsc) from the submodule + orig tarballs in ./
-          echo "==> Building source package (.dsc)"
-          dpkg-source -b ${PKG}
+          echo "==> Extracting Chromium source tarball"
+          tar xf "chromium_${UPVER}.orig.tar.xz" -C tmp/dsc-build
 
-          # Extract the source package — dpkg-source handles all 4 MUT components
-          echo "==> Extracting source package into ${BUILD_DIR}"
-          dpkg-source -x ${PKG}_*.dsc "$BUILD_DIR"
+          echo "==> Extracting CEF component tarball"
+          tar xf "chromium_${UPVER}.orig-cef.tar.xz" -C tmp/dsc-build
 
-          echo "=== Source extracted ==="
-          ls -la "$BUILD_DIR/"
+          ln -sf "$PWD/chromium_${UPVER}.orig.tar.xz" tmp/dsc-build/
+          ln -sf "$PWD/chromium_${UPVER}.orig-cef.tar.xz" tmp/dsc-build/
 
-      - name: Build CEF packages
+          echo "==> Copying debian directory"
+          cp -a chromium/debian "tmp/dsc-build/chromium-${UPVER}/debian"
+
+          echo "==> Building .dsc"
+          cd "tmp/dsc-build/chromium-${UPVER}" && dpkg-source -b .
+          cd "$GITHUB_WORKSPACE"
+
+          cp "tmp/dsc-build/chromium_${FULLVER}.dsc" .
+          cp "tmp/dsc-build/chromium_${FULLVER}.debian.tar.xz" .
+          rm -rf tmp/dsc-build
+
+          echo "=== Source package ==="
+          ls -lh "chromium_${FULLVER}."*
+
+      - name: Build CEF packages with sbuild
         run: |
-          PKG="chromium-embedded-framework"
-          # Use upstream version from changelog (same as extract step)
-          VERSION=$(dpkg-parsechangelog -l chromium-embedded-framework/debian/changelog -S Version | cut -d'-' -f1)
+          FULLVER="${{ steps.versions.outputs.full_version }}"
+          mkdir -p tmp
 
-          cd ${PKG}-${VERSION}
-
-          # Get version from changelog
-          FULL_VERSION=$(dpkg-parsechangelog -S Version)
-          echo "Building CEF version: $FULL_VERSION"
-
-          # Export clang-19 as default
-          export CC=clang-19
-          export CXX=clang++-19
-          export PATH="/usr/lib/llvm-19/bin:$PATH"
-
-          # Set TMPDIR to avoid /tmp space issues
-          export TMPDIR="$PWD/tmp"
-          mkdir -p "$TMPDIR"
-
-          # Build packages (this takes HOURS)
-          # Uses system rust-src (Build-Depends), no bundled rust needed
-          dpkg-buildpackage -b -us -uc
-
-          # List built packages
-          echo "=== Built packages ==="
-          ls -lh ../*.deb
+          echo "==> Building CEF packages with sbuild (amd64, this will take hours)"
+          sbuild --arch=amd64 --dist=unstable \
+            --chroot-mode=unshare \
+            --build-dep-resolver=apt --verbose \
+            --profiles=pkg.chromium.cef \
+            "chromium_${FULLVER}.dsc" \
+            2>&1 | tee "tmp/sbuild-chromium-cef-amd64-$(date +%Y%m%d-%H%M).log"
 
       - name: Run lintian checks
         continue-on-error: true
-        run: |
-          # Find built .deb files (in parent of build directory)
-          lintian --info --display-info --pedantic *.deb || true
+        run: lintian --info --display-info --pedantic libcef*.deb || true
 
       - name: Collect build artifacts
         run: |
           mkdir -p artifacts/cef-sid-amd64
 
-          # Built packages are in the current directory (parent of build dir)
-          for deb in *.deb; do
+          # sbuild produces .deb files in the current directory
+          for deb in libcef*.deb; do
             if [ -f "$deb" ]; then
               filename=$(basename "$deb")
               # Add distro suffix for consistency with other packages
@@ -196,7 +211,7 @@ jobs:
             fi
           done
 
-          # Move other artifacts
+          # Move other build artifacts
           mv *.buildinfo artifacts/cef-sid-amd64/ 2>/dev/null || true
           mv *.changes artifacts/cef-sid-amd64/ 2>/dev/null || true
 
@@ -233,61 +248,53 @@ jobs:
 
       - name: Create release notes
         run: |
-          CEF_VERSION="${{ github.event.inputs.version }}"
-          CEF_SONAME=$(echo "$CEF_VERSION" | cut -d. -f1)
+          CEF_SONAME="${{ needs.build-cef.outputs.cef_soname }}"
+          CHROMIUM_VERSION="${{ needs.build-cef.outputs.upstream_version }}"
+          FULL_VERSION="${{ needs.build-cef.outputs.full_version }}"
           BUILD_DATE="$(date -u +"%Y-%m-%d %H:%M UTC")"
-          WORKFLOW_ID="${GITHUB_RUN_ID}"
 
-          cat > RELEASE_NOTES.md << 'EOF'
-          # Chromium Embedded Framework VERSION_PLACEHOLDER
+          cat > RELEASE_NOTES.md << EOF
+          # Chromium Embedded Framework (libcef${CEF_SONAME})
+
+          Built from Chromium ${CHROMIUM_VERSION} source package (${FULL_VERSION}) with CEF build profile.
 
           ## Packages
 
-          - **libcefSONAME_PLACEHOLDER** - CEF runtime library
-          - **libcefSONAME_PLACEHOLDER-dbgsym** - Debug symbols
-          - **libcef-dev** - Development headers
+          - **libcef${CEF_SONAME}** - CEF runtime library
+          - **libcef${CEF_SONAME}-dbgsym** - Debug symbols
+          - **libcef-dev** - Development headers, CMake config, pkg-config
           - **libcef-common** - Required runtime resources (locales, PAK files)
 
           ## Installation
 
-          These packages are available in the APT repository for Debian sid:
+          Available in the APT repository for Debian sid:
 
-          ```bash
+          \`\`\`bash
           wget -qO - https://debian.vejeta.com/key.gpg | sudo gpg --dearmor -o /usr/share/keyrings/stremio-debian.gpg
           echo "deb [signed-by=/usr/share/keyrings/stremio-debian.gpg] https://debian.vejeta.com sid main non-free" | sudo tee /etc/apt/sources.list.d/stremio.list
           sudo apt update
-          sudo apt install libcefSONAME_PLACEHOLDER libcef-common
-          ```
+          sudo apt install libcef${CEF_SONAME} libcef-common
+          \`\`\`
 
           ## Build Information
 
-          - Built on: DATE_PLACEHOLDER
+          - Built on: ${BUILD_DATE}
+          - Source: chromium ${CHROMIUM_VERSION} (cef branch)
           - Distribution: Debian sid (unstable)
-          - Architecture: amd64 only
-          - Build runner: Self-hosted (high-memory)
-          - Workflow: WORKFLOW_PLACEHOLDER
-
-          ## Note
-
-          CEF packages are only available for Debian sid due to clang-19 requirements.
-          These packages are required by stremio-gtk.
+          - Architecture: amd64
+          - Build method: sbuild --profiles=pkg.chromium.cef
 
           ## License
 
-          CEF is distributed in the `main` component (BSD-licensed core with some bundled components).
+          CEF is distributed in the \`main\` component (BSD-3-Clause).
           EOF
-
-          # Replace placeholders
-          sed -i "s/VERSION_PLACEHOLDER/$CEF_VERSION/g" RELEASE_NOTES.md
-          sed -i "s/SONAME_PLACEHOLDER/$CEF_SONAME/g" RELEASE_NOTES.md
-          sed -i "s/DATE_PLACEHOLDER/$BUILD_DATE/g" RELEASE_NOTES.md
-          sed -i "s/WORKFLOW_PLACEHOLDER/$WORKFLOW_ID/g" RELEASE_NOTES.md
 
           cat RELEASE_NOTES.md
 
       - name: Delete existing release assets if rebuilding
         run: |
-          TAG="cef-${{ github.event.inputs.version }}"
+          CHROMIUM_VERSION="${{ needs.build-cef.outputs.upstream_version }}"
+          TAG="cef-${CHROMIUM_VERSION}"
           REPO="${{ github.repository }}"
           # Delete all assets by ID via API (avoids filename encoding issues)
           RELEASE_ID=$(gh api "repos/$REPO/releases/tags/$TAG" --jq '.id' 2>/dev/null) || true
@@ -306,8 +313,8 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v3
         with:
-          tag_name: cef-${{ github.event.inputs.version }}
-          name: CEF ${{ github.event.inputs.version }}
+          tag_name: cef-${{ needs.build-cef.outputs.upstream_version }}
+          name: CEF ${{ needs.build-cef.outputs.cef_soname }} (Chromium ${{ needs.build-cef.outputs.upstream_version }})
           body_path: RELEASE_NOTES.md
           draft: false
           prerelease: true
@@ -321,4 +328,4 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           event-type: cef-packages-updated
-          client-payload: '{"version": "${{ github.event.inputs.version }}"}'
+          client-payload: '{"version": "${{ needs.build-cef.outputs.upstream_version }}"}'

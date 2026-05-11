@@ -198,8 +198,8 @@ CEF builds consume significant disk space. After successful builds:
 df -h
 
 # Clean up old build artifacts if needed
-rm -rf ~/actions-runner/_work/stremio-debian/stremio-debian/chromium-embedded-framework/chromium_src
-rm -rf ~/actions-runner/_work/stremio-debian/stremio-debian/chromium-embedded-framework/tmp
+rm -rf ~/actions-runner/_work/stremio-debian/stremio-debian/chromium
+rm -rf ~/actions-runner/_work/stremio-debian/stremio-debian/tmp
 ```
 
 ### Monitoring
@@ -268,7 +268,7 @@ CEF builds are triggered manually via GitHub Actions:
 ### Using GitHub CLI
 
 ```bash
-gh workflow run "Build CEF Packages" -f version="144.0.7"
+gh workflow run "Build CEF Packages"
 ```
 
 ### Using GitHub Web UI
@@ -276,8 +276,7 @@ gh workflow run "Build CEF Packages" -f version="144.0.7"
 1. Go to: https://github.com/vejeta/stremio-debian/actions
 2. Select "Build CEF Packages" workflow
 3. Click "Run workflow"
-4. Enter the CEF version
-5. Click "Run workflow"
+4. Click "Run workflow"
 
 ### Monitoring Build Progress
 

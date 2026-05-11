@@ -534,7 +534,7 @@ jobs:
               <h2>About the Clients</h2>
 
               <h3>stremio-gtk (Recommended)</h3>
-              <p>Modern GTK4/Adwaita client using CEF (Chromium Embedded Framework). Native Wayland support, follows GNOME HIG. This is the actively developed successor to the Qt5 client. CEF dependencies (libcef147, libcef-common) are installed automatically.</p>
+              <p>Modern GTK4/Adwaita client using CEF (Chromium Embedded Framework). Native Wayland support, follows GNOME HIG. This is the actively developed successor to the Qt5 client. CEF dependencies (libcef148, libcef-common) are installed automatically.</p>
 
               <h3>stremio-qt6 (Experimental)</h3>
               <p>Experimental Qt6 port for users who prefer KDE/Plasma or Qt-based desktop environments. Provides a non-deprecated Qt client as a workaround while the Qt5 version reaches end-of-life. Can be installed alongside stremio-gtk.</p>
@@ -550,7 +550,7 @@ jobs:
                   <tr><td><strong>stremio-qt6</strong></td><td>Qt6 Stremio client</td><td>main</td><td>trixie, sid, plucky</td></tr>
                   <tr><td><strong>stremio</strong></td><td>Qt5 Stremio client (legacy)</td><td>main</td><td>bookworm, trixie, testing, sid, noble</td></tr>
                   <tr><td><strong>stremio-server</strong></td><td>Streaming server (proprietary)</td><td>non-free</td><td>all</td></tr>
-                  <tr><td><strong>libcef147</strong></td><td>CEF runtime library</td><td>main</td><td>sid</td></tr>
+                  <tr><td><strong>libcef148</strong></td><td>CEF runtime library</td><td>main</td><td>sid</td></tr>
                   <tr><td><strong>libcef-common</strong></td><td>CEF resources (locales, PAK files)</td><td>main</td><td>sid</td></tr>
                   <tr><td><strong>libcef-dev</strong></td><td>CEF development headers</td><td>main</td><td>sid</td></tr>
                   <tr><td><strong>librust-cef-dev</strong></td><td>Rust CEF bindings</td><td>main</td><td>sid</td></tr>
@@ -582,7 +582,7 @@ jobs:
                   <li><a href="https://salsa.debian.org/mendezr/stremio-qt6">stremio-qt6</a> (GPL-3.0) &mdash; upstream: <a href="https://github.com/vejeta/stremio-shell/tree/qt6-migration">vejeta/stremio-shell qt6-migration</a></li>
                   <li><a href="https://salsa.debian.org/mendezr/stremio">stremio</a> (GPL-3.0) &mdash; <a href="https://bugs.debian.org/943703">ITP #943703</a></li>
                   <li><a href="https://salsa.debian.org/mendezr/stremio-server">stremio-server</a> (Proprietary)</li>
-                  <li><a href="https://salsa.debian.org/mendezr/chromium-embedded-framework">chromium-embedded-framework</a> (BSD-3-Clause) &mdash; <a href="https://bugs.debian.org/915400">ITP #915400</a></li>
+                  <li><a href="https://salsa.debian.org/mendezr/chromium/-/tree/cef">chromium (CEF build profile)</a> (BSD-3-Clause) &mdash; <a href="https://bugs.debian.org/915400">ITP #915400</a></li>
                   <li><a href="https://salsa.debian.org/mendezr/rust-cef">rust-cef</a> / <a href="https://salsa.debian.org/mendezr/rust-cef-dll-sys">rust-cef-dll-sys</a> (Apache-2.0 OR MIT)</li>
               </ul>
 
