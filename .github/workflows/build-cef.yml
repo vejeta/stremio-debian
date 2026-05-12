@@ -185,13 +185,24 @@ jobs:
           FULLVER="${{ steps.versions.outputs.full_version }}"
           mkdir -p tmp
 
+          LOGFILE="tmp/sbuild-chromium-cef-amd64-$(date +%Y%m%d-%H%M).log"
+
           echo "==> Building CEF packages with sbuild (amd64, this will take hours)"
           sbuild --arch=amd64 --dist=unstable \
             --chroot-mode=unshare \
             --build-dep-resolver=apt --verbose \
             --profiles=pkg.chromium.cef \
             "chromium_${FULLVER}.dsc" \
-            2>&1 | tee "tmp/sbuild-chromium-cef-amd64-$(date +%Y%m%d-%H%M).log"
+            2>&1 | tee "$LOGFILE"
+
+          # Check sbuild exit status (pipefail should catch this, but be explicit)
+          if grep -q "^Status: successful" "$LOGFILE"; then
+            echo "==> Build successful"
+          else
+            echo "==> Build FAILED"
+            grep "^Fail-Stage:\|^Status:\|^E:" "$LOGFILE" || true
+            exit 1
+          fi
 
       - name: Run lintian checks
         continue-on-error: true
