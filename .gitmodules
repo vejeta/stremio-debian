@@ -16,3 +16,6 @@
 [submodule "stremio-qt6"]
 	path = stremio-qt6
 	url = https://salsa.debian.org/mendezr/stremio-qt6.git
+[submodule "brow6el"]
+	path = brow6el
+	url = https://salsa.debian.org/mendezr/brow6el.git

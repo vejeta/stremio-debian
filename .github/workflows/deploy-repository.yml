@@ -2,7 +2,7 @@ name: Deploy APT Repository to GitHub Pages
 
 on:
   repository_dispatch:
-    types: [packages-updated, cef-packages-updated, gtk-packages-updated, qt6-packages-updated]
+    types: [packages-updated, cef-packages-updated, gtk-packages-updated, qt6-packages-updated, brow6el-packages-updated]
   workflow_dispatch:
     inputs:
       force_rebuild:
@@ -245,6 +245,42 @@ jobs:
             done
           else
             echo "No stremio-qt6 releases found (this is OK if stremio-qt6 hasn't been built yet)"
+          fi
+
+      - name: Download brow6el packages from separate releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Find latest brow6el release (tag format: brow6el-X.X.X)
+          BROW6EL_TAG=$(gh release list --limit 20 --json tagName -q '.[].tagName' | grep "^brow6el-" | head -1)
+
+          if [ -n "$BROW6EL_TAG" ]; then
+            echo "Downloading brow6el packages from release: $BROW6EL_TAG"
+            mkdir -p temp-brow6el-downloads
+            gh release download "$BROW6EL_TAG" --pattern "*.deb" --dir temp-brow6el-downloads/ || true
+
+            # brow6el packages go to sid/main
+            for deb in temp-brow6el-downloads/*.deb; do
+              if [ -f "$deb" ]; then
+                filename=$(basename "$deb")
+                echo "Processing brow6el release package: $filename"
+
+                # Remove -sid suffix if present to get clean filename
+                if [[ "$filename" == *-sid.deb ]]; then
+                  clean_filename="${filename%-sid.deb}.deb"
+                else
+                  clean_filename="$filename"
+                fi
+
+                cp "$deb" "packages/sid/main/$clean_filename"
+                echo "  -> packages/sid/main/$clean_filename"
+              fi
+            done
+
+            echo "=== brow6el release packages sorted ==="
+            ls -lh packages/sid/main/brow6el* 2>/dev/null || echo "  (none)"
+          else
+            echo "No brow6el releases found (this is OK if brow6el hasn't been built yet)"
           fi
 
       - name: Import GPG key
@@ -555,6 +591,7 @@ jobs:
                   <tr><td><strong>libcef-dev</strong></td><td>CEF development headers</td><td>main</td><td>sid</td></tr>
                   <tr><td><strong>librust-cef-dev</strong></td><td>Rust CEF bindings</td><td>main</td><td>sid</td></tr>
                   <tr><td><strong>librust-cef-dll-sys-dev</strong></td><td>Rust CEF FFI bindings</td><td>main</td><td>sid</td></tr>
+                  <tr><td><strong>brow6el</strong></td><td>Terminal web browser (CEF/Sixel)</td><td>main</td><td>sid</td></tr>
               </table>
 
               <h2>Security &amp; Verification</h2>
@@ -584,6 +621,7 @@ jobs:
                   <li><a href="https://salsa.debian.org/mendezr/stremio-server">stremio-server</a> (Proprietary)</li>
                   <li><a href="https://salsa.debian.org/mendezr/chromium/-/tree/cef">chromium (CEF build profile)</a> (BSD-3-Clause) &mdash; <a href="https://bugs.debian.org/915400">ITP #915400</a></li>
                   <li><a href="https://salsa.debian.org/mendezr/rust-cef">rust-cef</a> / <a href="https://salsa.debian.org/mendezr/rust-cef-dll-sys">rust-cef-dll-sys</a> (Apache-2.0 OR MIT)</li>
+                  <li><a href="https://salsa.debian.org/mendezr/brow6el">brow6el</a> (MIT) &mdash; <a href="https://bugs.debian.org/1135705">ITP #1135705</a></li>
               </ul>
 
               <h2>Support</h2>

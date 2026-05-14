@@ -103,6 +103,22 @@ sudo apt install stremio stremio-server
 - `librust-cef-dll-sys-dev` - Rust CEF FFI bindings
 - `stremio-server` - Streaming server
 
+### brow6el (main) - Debian sid only
+
+| Property | Value |
+|----------|-------|
+| **License** | MIT |
+| **Architecture** | amd64 |
+| **Distribution** | Debian sid only |
+| **Upstream** | [codeberg.org/janantos/brow6el](https://codeberg.org/janantos/brow6el) |
+| **Packaging** | [salsa.debian.org/mendezr/brow6el](https://salsa.debian.org/mendezr/brow6el) |
+
+A full-featured terminal web browser built on CEF. Renders web pages as graphics directly in the terminal using Sixel or Kitty image protocols. Features a vim-inspired modal interface with bookmarks, user scripts, DNS-over-HTTPS, and proxy support.
+
+**Dependencies** (installed automatically):
+- `libcef148` - CEF runtime library
+- `libcef-common` - CEF locales and resources
+
 ### Rust CEF Bindings (main) - Debian sid only
 
 | Package | Description | License |
@@ -174,6 +190,7 @@ This repository uses **separate releases** for different package groups:
 | `v*` (e.g., v5.0.0) | stremio (Qt5), stremio-server | All |
 | `gtk-*` (e.g., gtk-1.0.0-beta.13.ds-1) | stremio-gtk, stremio-server, librust-cef-dev, librust-cef-dll-sys-dev | sid only |
 | `cef-*` (e.g., cef-147.0.3) | libcef148, libcef-common, libcef-dev | sid only |
+| `brow6el-*` (e.g., brow6el-0.3.4-1) | brow6el | sid only |
 
 **For users**: The APT repository at `debian.vejeta.com` combines all packages automatically. Just `apt install` what you need.
 
@@ -197,6 +214,15 @@ This repository uses **separate releases** for different package groups:
 - **Target**: Debian `main` archive
 - **License**: BSD-style (DFSG-compliant)
 - **Status**: Built as a build profile of the [Debian Chromium package](https://salsa.debian.org/mendezr/chromium) (cef branch)
+
+### brow6el - **Active ITP**
+
+**ITP**: [Bug #1135705](https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=1135705)
+
+- **Target**: Debian `main` archive
+- **License**: MIT (DFSG-compliant)
+- **Status**: Packaging complete, seeking sponsorship
+- **Dependencies**: Requires CEF packages
 
 ### stremio (Qt5) - **Unlikely to be Sponsored**
 
@@ -260,6 +286,7 @@ The Qt5 client ITP was filed in 2019, but Qt5 reaching EOL means this package ca
 | libcef-common | BSD-3-Clause | sid | all | Active |
 | librust-cef-dll-sys-dev | Apache-2.0 OR MIT | sid | amd64 | Active |
 | librust-cef-dev | Apache-2.0 OR MIT | sid | amd64 | Active |
+| brow6el | MIT | sid | amd64 | Active |
 
 ---
 
@@ -299,6 +326,7 @@ dpkg-buildpackage -us -uc
    - [chromium (cef branch)](https://salsa.debian.org/mendezr/chromium/-/tree/cef) — CEF build profile
    - [rust-cef-dll-sys](https://salsa.debian.org/mendezr/rust-cef-dll-sys)
    - [rust-cef](https://salsa.debian.org/mendezr/rust-cef)
+   - [brow6el](https://salsa.debian.org/mendezr/brow6el)
 
 2. **Build System**: Submit to [GitHub repository](https://github.com/vejeta/stremio-debian)
 

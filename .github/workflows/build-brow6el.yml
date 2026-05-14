@@ -1,0 +1,244 @@
+name: Build brow6el Packages
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'brow6el version to build (e.g., 0.3.4-1)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+env:
+  DEBIAN_FRONTEND: noninteractive
+  DEBEMAIL: "vejeta@gmail.com"
+  DEBFULLNAME: "Juan Manuel Mendez Rey"
+
+jobs:
+  build-brow6el:
+    name: Build brow6el - sid amd64
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository with submodules
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Verify brow6el submodule
+        run: |
+          if [ ! -d "brow6el/debian" ]; then
+            echo "ERROR: brow6el submodule not properly checked out"
+            exit 1
+          fi
+          echo "brow6el submodule verified"
+          ls -la brow6el/
+
+      - name: Build in sid container
+        run: |
+          docker run --rm --platform linux/amd64 --privileged \
+            -v "$PWD:/workspace" \
+            -w /workspace \
+            -e DEBIAN_FRONTEND=noninteractive \
+            -e DEBEMAIL="vejeta@gmail.com" \
+            -e DEBFULLNAME="Juan Manuel Mendez Rey" \
+            debian:sid \
+            bash -c '
+              set -e
+
+              # Update and upgrade
+              apt-get update && apt-get upgrade -y
+
+              # Add stremio-debian repository for CEF packages
+              apt-get install -y wget gnupg
+              wget -qO - https://debian.vejeta.com/key.gpg | gpg --dearmor -o /usr/share/keyrings/stremio-debian.gpg
+              echo "deb [signed-by=/usr/share/keyrings/stremio-debian.gpg] https://debian.vejeta.com sid main non-free" > /etc/apt/sources.list.d/stremio.list
+              apt-get update
+
+              # Install build dependencies
+              apt-get install -y \
+                git debhelper-compat cmake pkgconf \
+                libcef-dev libcef-common \
+                libsixel-dev libx11-dev libasound2-dev \
+                libnss3-dev libnspr4-dev \
+                libxcomposite-dev libxdamage-dev libxext-dev \
+                libxfixes-dev libxrandr-dev \
+                libpango1.0-dev libcairo2-dev \
+                devscripts lintian dpkg-dev fakeroot
+
+              # Configure git
+              git config --global user.email "$DEBEMAIL"
+              git config --global user.name "$DEBFULLNAME"
+              git config --global --add safe.directory "*"
+
+              cd brow6el
+
+              # Sync to latest Salsa (source of truth)
+              echo "=== Syncing brow6el to latest Salsa ==="
+              git fetch origin
+              git checkout origin/main
+              echo "Synced to: $(git log -1 --oneline)"
+
+              # Get version from changelog
+              VERSION=$(dpkg-parsechangelog -S Version)
+              UPSTREAM_VERSION=$(echo "$VERSION" | cut -d- -f1)
+              echo "Building brow6el version: $VERSION (upstream: $UPSTREAM_VERSION)"
+
+              # Create upstream tarball
+              cd ..
+              tar --exclude-vcs --exclude=debian --exclude=.pc \
+                -cJf brow6el_${UPSTREAM_VERSION}.orig.tar.xz brow6el/
+              cd brow6el
+
+              # Build binary packages
+              dpkg-buildpackage -us -uc
+
+              # Lintian check
+              echo "=== Running lintian checks ==="
+              lintian --info --display-info --pedantic ../*.deb || true
+            '
+
+      - name: Collect build artifacts
+        run: |
+          mkdir -p artifacts/brow6el-sid-amd64
+
+          for deb in brow6el/../*.deb; do
+            if [ -f "$deb" ]; then
+              filename=$(basename "$deb")
+              # Add distro suffix
+              newname="${filename%.deb}-sid.deb"
+              mv "$deb" "artifacts/brow6el-sid-amd64/$newname"
+            fi
+          done
+
+          # Move other artifacts
+          mv brow6el/../*.buildinfo artifacts/brow6el-sid-amd64/ 2>/dev/null || true
+          mv brow6el/../*.changes artifacts/brow6el-sid-amd64/ 2>/dev/null || true
+
+          echo "=== Collected artifacts ==="
+          ls -lah artifacts/brow6el-sid-amd64/
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: brow6el-packages-sid-amd64
+          path: artifacts/brow6el-sid-amd64/*.deb
+          retention-days: 90
+
+      - name: Upload all artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: brow6el-all-sid-amd64
+          path: artifacts/brow6el-sid-amd64/*
+          retention-days: 90
+
+  create-brow6el-release:
+    name: Create brow6el Release
+    needs: [build-brow6el]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v8
+        with:
+          path: release-artifacts
+
+      - name: Display artifacts
+        run: ls -R release-artifacts
+
+      - name: Create release notes
+        run: |
+          BROW6EL_VERSION="${{ github.event.inputs.version }}"
+          BUILD_DATE="$(date -u +"%Y-%m-%d %H:%M UTC")"
+          WORKFLOW_ID="${GITHUB_RUN_ID}"
+
+          cat > RELEASE_NOTES.md << 'EOF'
+          # brow6el VERSION_PLACEHOLDER
+
+          Terminal web browser built on the Chromium Embedded Framework (CEF).
+
+          ## Packages
+
+          - **brow6el** - Terminal web browser using CEF with Sixel/Kitty graphics
+
+          ## Installation
+
+          Available in the APT repository for Debian sid:
+
+          ```bash
+          wget -qO - https://debian.vejeta.com/key.gpg | sudo gpg --dearmor -o /usr/share/keyrings/stremio-debian.gpg
+          echo "deb [signed-by=/usr/share/keyrings/stremio-debian.gpg] https://debian.vejeta.com sid main non-free" | sudo tee /etc/apt/sources.list.d/stremio.list
+          sudo apt update
+          sudo apt install brow6el
+          ```
+
+          ## Dependencies
+
+          brow6el requires CEF packages (installed automatically via APT dependencies):
+          - libcef148 (runtime library)
+          - libcef-common (shared resources)
+
+          ## Build Information
+
+          - Built on: DATE_PLACEHOLDER
+          - Distribution: Debian sid (unstable)
+          - Architecture: amd64 only
+          - Workflow: WORKFLOW_PLACEHOLDER
+
+          ## Source Code
+
+          - [brow6el on Salsa](https://salsa.debian.org/mendezr/brow6el)
+          - [ITP #1135705](https://bugs.debian.org/1135705)
+
+          ## License
+
+          brow6el is licensed under MIT and is distributed in the `main` component.
+          EOF
+
+          # Replace placeholders
+          sed -i "s/VERSION_PLACEHOLDER/$BROW6EL_VERSION/g" RELEASE_NOTES.md
+          sed -i "s/DATE_PLACEHOLDER/$BUILD_DATE/g" RELEASE_NOTES.md
+          sed -i "s/WORKFLOW_PLACEHOLDER/$WORKFLOW_ID/g" RELEASE_NOTES.md
+
+          cat RELEASE_NOTES.md
+
+      - name: Delete existing release assets if rebuilding
+        run: |
+          BROW6EL_VERSION="${{ github.event.inputs.version }}"
+          TAG="brow6el-${BROW6EL_VERSION}"
+          REPO="${{ github.repository }}"
+          RELEASE_ID=$(gh api "repos/$REPO/releases/tags/$TAG" --jq '.id' 2>/dev/null) || true
+          if [ -n "$RELEASE_ID" ]; then
+            gh api "repos/$REPO/releases/$RELEASE_ID/assets" --jq '.[].id' | while read -r asset_id; do
+              echo "Deleting asset ID: $asset_id"
+              gh api -X DELETE "repos/$REPO/releases/assets/$asset_id"
+            done
+            echo "All existing assets deleted"
+          else
+            echo "No existing release found for $TAG"
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: brow6el-${{ github.event.inputs.version }}
+          name: brow6el ${{ github.event.inputs.version }}
+          body_path: RELEASE_NOTES.md
+          draft: false
+          prerelease: false
+          files: |
+            release-artifacts/brow6el-packages-*/*.deb
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Trigger repository update
+        uses: peter-evans/repository-dispatch@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          event-type: brow6el-packages-updated
+          client-payload: '{"version": "${{ github.event.inputs.version }}"}'
