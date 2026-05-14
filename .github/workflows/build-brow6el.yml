@@ -60,7 +60,7 @@ jobs:
 
               # Install build dependencies
               apt-get install -y \
-                git git-buildpackage pristine-tar \
+                git git-buildpackage pristine-tar quilt \
                 debhelper-compat cmake pkgconf \
                 libcef-dev libcef-common \
                 libsixel-dev libx11-dev libasound2-dev \
