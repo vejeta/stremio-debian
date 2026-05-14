@@ -79,7 +79,7 @@ jobs:
               # Sync to latest Salsa (source of truth)
               echo "=== Syncing brow6el to latest Salsa ==="
               git fetch origin
-              git checkout origin/main
+              git checkout origin/master
               echo "Synced to: $(git log -1 --oneline)"
 
               # Get version from changelog
