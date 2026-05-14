@@ -60,7 +60,8 @@ jobs:
 
               # Install build dependencies
               apt-get install -y \
-                git debhelper-compat cmake pkgconf \
+                git git-buildpackage pristine-tar \
+                debhelper-compat cmake pkgconf \
                 libcef-dev libcef-common \
                 libsixel-dev libx11-dev libasound2-dev \
                 libnss3-dev libnspr4-dev \
@@ -87,14 +88,17 @@ jobs:
               UPSTREAM_VERSION=$(echo "$VERSION" | cut -d- -f1)
               echo "Building brow6el version: $VERSION (upstream: $UPSTREAM_VERSION)"
 
-              # Create upstream tarball
-              cd ..
-              tar --exclude-vcs --exclude=debian --exclude=.pc \
-                -cJf brow6el_${UPSTREAM_VERSION}.orig.tar.xz brow6el/
-              cd brow6el
+              # Fetch pristine-tar and upstream branches for orig tarball
+              echo "=== Fetching pristine-tar and upstream branches ==="
+              git fetch origin pristine-tar:pristine-tar upstream:upstream
+
+              # Get orig tarball from pristine-tar
+              echo "=== Extracting orig tarball from pristine-tar ==="
+              pristine-tar checkout "../brow6el_${UPSTREAM_VERSION}.orig.tar.xz"
+              ls -lh "../brow6el_${UPSTREAM_VERSION}.orig.tar.xz"
 
               # Build binary packages
-              dpkg-buildpackage -us -uc
+              dpkg-buildpackage -b -us -uc
 
               # Lintian check
               echo "=== Running lintian checks ==="
