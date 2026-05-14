@@ -94,8 +94,8 @@ jobs:
 
               # Get orig tarball from pristine-tar
               echo "=== Extracting orig tarball from pristine-tar ==="
-              pristine-tar checkout "../brow6el_${UPSTREAM_VERSION}.orig.tar.xz"
-              ls -lh "../brow6el_${UPSTREAM_VERSION}.orig.tar.xz"
+              pristine-tar checkout "../brow6el_${UPSTREAM_VERSION}.orig.tar.gz"
+              ls -lh "../brow6el_${UPSTREAM_VERSION}.orig.tar.gz"
 
               # Build binary packages
               dpkg-buildpackage -b -us -uc
