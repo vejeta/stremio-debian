@@ -473,30 +473,33 @@ jobs:
               <h2>Quick Installation</h2>
 
               <h3>Step 1: Add repository GPG key</h3>
-              <pre>sudo mkdir -p /etc/apt/keyrings
-wget -qO - https://debian.vejeta.com/key.gpg | sudo gpg --dearmor -o /etc/apt/keyrings/stremio-debian.gpg</pre>
+              <pre>
+              sudo mkdir -p /etc/apt/keyrings
+              wget -qO - https://debian.vejeta.com/key.gpg | sudo gpg --dearmor -o /etc/apt/keyrings/stremio-debian.gpg</pre>
 
               <h3>Step 2: Add repository source</h3>
 
               <p>Choose your distribution:</p>
-              <pre># Debian sid (unstable)
-echo "deb [signed-by=/etc/apt/keyrings/stremio-debian.gpg] https://debian.vejeta.com sid main non-free" | sudo tee /etc/apt/sources.list.d/vejeta.list
+              <pre>
+              # Debian sid (unstable)
+              echo "deb [signed-by=/etc/apt/keyrings/stremio-debian.gpg] https://debian.vejeta.com sid main non-free" | sudo tee /etc/apt/sources.list.d/vejeta.list
 
-# Debian trixie (13 - stable)
-echo "deb [signed-by=/etc/apt/keyrings/stremio-debian.gpg] https://debian.vejeta.com trixie main non-free" | sudo tee /etc/apt/sources.list.d/vejeta.list
+              # Debian trixie (13 - stable)
+              echo "deb [signed-by=/etc/apt/keyrings/stremio-debian.gpg] https://debian.vejeta.com trixie main non-free" | sudo tee /etc/apt/sources.list.d/vejeta.list
 
-# Debian bookworm (12)
-echo "deb [signed-by=/etc/apt/keyrings/stremio-debian.gpg] https://debian.vejeta.com bookworm main non-free" | sudo tee /etc/apt/sources.list.d/vejeta.list
+              # Debian bookworm (12)
+              echo "deb [signed-by=/etc/apt/keyrings/stremio-debian.gpg] https://debian.vejeta.com bookworm main non-free" | sudo tee /etc/apt/sources.list.d/vejeta.list
 
-# Debian testing (rolling)
-echo "deb [signed-by=/etc/apt/keyrings/stremio-debian.gpg] https://debian.vejeta.com testing main non-free" | sudo tee /etc/apt/sources.list.d/vejeta.list
+              # Debian testing (rolling)
+              echo "deb [signed-by=/etc/apt/keyrings/stremio-debian.gpg] https://debian.vejeta.com testing main non-free" | sudo tee /etc/apt/sources.list.d/vejeta.list
 
-# Ubuntu 25.04 (plucky) / 24.04 (noble)
-echo "deb [signed-by=/etc/apt/keyrings/stremio-debian.gpg] https://debian.vejeta.com plucky main non-free" | sudo tee /etc/apt/sources.list.d/vejeta.list</pre>
+              # Ubuntu 25.04 (plucky) / 24.04 (noble)
+              echo "deb [signed-by=/etc/apt/keyrings/stremio-debian.gpg] https://debian.vejeta.com plucky main non-free" | sudo tee /etc/apt/sources.list.d/vejeta.list</pre>
 
               <h3>Step 3: Install</h3>
-              <pre>sudo apt update
-sudo apt install &lt;package-name&gt;</pre>
+              <pre>
+              sudo apt update
+              sudo apt install &lt;package-name&gt;</pre>
 
               <h2>Packages</h2>
 
