@@ -464,10 +464,10 @@ jobs:
           <body>
               <h1>vejeta Debian Repository</h1>
 
-              <p>Unofficial Debian packages built from source, following Debian packaging standards.</p>
+              <p>Unofficial Debian packages built from source, following Debian packaging standards. Includes pre-built <strong>libcef</strong> (Chromium Embedded Framework) packages tracking latest Chromium releases &mdash; the only Debian-native CEF available (<a href="https://bugs.debian.org/915400">ITP #915400</a>, open since 2017). Applications can link against system CEF instead of bundling their own copy.</p>
 
               <div class="info">
-                  <strong>Third-party repository:</strong> These packages are not yet part of the official Debian archive. They have been submitted for review via ITPs (Intent to Package) and are pending sponsorship. See <a href="#source-code">Source Code &amp; ITPs</a> below.
+                  <strong>Third-party repository:</strong> These packages are not yet part of the official Debian archive. They have been submitted for review via ITPs and are pending sponsorship. See <a href="#source-code">Source Code &amp; ITPs</a> below.
               </div>
 
               <h2>Quick Installation</h2>
