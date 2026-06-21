@@ -455,6 +455,8 @@ jobs:
                   code { background: #f4f4f4; padding: 2px 6px; border-radius: 3px; }
                   pre { background: #f4f4f4; padding: 15px; border-radius: 5px; overflow-x: auto; }
                   .info { background: #d1ecf1; border-left: 4px solid #0c5460; padding: 15px; margin: 20px 0; }
+                  .warning { background: #fff3cd; border-left: 4px solid #856404; padding: 15px; margin: 20px 0; }
+                  .experimental { color: #856404; font-weight: bold; }
                   h1 { color: #222; } h2 { color: #444; margin-top: 35px; } h3 { color: #555; }
                   table { border-collapse: collapse; width: 100%; margin: 15px 0; }
                   th, td { border: 1px solid #ddd; padding: 8px 12px; text-align: left; }
@@ -501,12 +503,26 @@ jobs:
               sudo apt update
               sudo apt install &lt;package-name&gt;</pre>
 
+              <h3>Which package should I install?</h3>
+
+              <p>For a working desktop client we recommend one of the following. Both pair with <code>stremio-server</code> (installed automatically as a dependency):</p>
+              <pre>
+              # Recommended: Qt5 client
+              sudo apt install stremio stremio-server
+
+              # Alternative: GTK4/CEF client (Debian sid only)
+              sudo apt install stremio-gtk stremio-server</pre>
+
+              <div class="warning">
+                  <strong>&#9888; Do not install <code>stremio-qt6</code> yet.</strong> The Qt6 client is <span class="experimental">experimental and a work in progress</span> &mdash; it is published for testing only and is not expected to work on most systems (including Ubuntu Noble / Plucky and KDE Neon). If you want a working client, install <code>stremio</code> (Qt5) or <code>stremio-gtk</code> (CEF) as shown above.
+              </div>
+
               <h2>Packages</h2>
 
               <table>
                   <tr><th>Package</th><th>Description</th><th>Component</th><th>Distributions</th><th>Arch</th></tr>
                   <tr><td><strong>stremio-gtk</strong></td><td>Stremio media center (GTK4/CEF)</td><td>main</td><td>sid</td><td>amd64</td></tr>
-                  <tr><td><strong>stremio-qt6</strong></td><td>Stremio media center (Qt6)</td><td>main</td><td>trixie, sid, plucky</td><td>amd64, arm64</td></tr>
+                  <tr><td><strong>stremio-qt6</strong></td><td>Stremio media center (Qt6) &mdash; <span class="experimental">EXPERIMENTAL, work in progress, not recommended</span></td><td>main</td><td>trixie, sid, plucky</td><td>amd64, arm64</td></tr>
                   <tr><td><strong>stremio</strong></td><td>Stremio media center (Qt5, legacy)</td><td>main</td><td>bookworm, trixie, testing, sid, noble</td><td>amd64, arm64</td></tr>
                   <tr><td><strong>stremio-server</strong></td><td>Stremio streaming server</td><td>non-free</td><td>all</td><td>all</td></tr>
                   <tr><td><strong>brow6el</strong></td><td>Terminal web browser (CEF/Sixel)</td><td>main</td><td>sid</td><td>amd64</td></tr>
@@ -539,7 +555,7 @@ jobs:
 
               <ul>
                   <li><a href="https://salsa.debian.org/mendezr/stremio-gtk">stremio-gtk</a> (GPL-3.0) &mdash; <a href="https://bugs.debian.org/1119815">ITP #1119815</a></li>
-                  <li><a href="https://salsa.debian.org/mendezr/stremio-qt6">stremio-qt6</a> (GPL-3.0)</li>
+                  <li><a href="https://salsa.debian.org/mendezr/stremio-qt6">stremio-qt6</a> (GPL-3.0) &mdash; <span class="experimental">experimental</span></li>
                   <li><a href="https://salsa.debian.org/mendezr/stremio">stremio</a> (GPL-3.0) &mdash; <a href="https://bugs.debian.org/943703">ITP #943703</a></li>
                   <li><a href="https://salsa.debian.org/mendezr/stremio-server">stremio-server</a> (Proprietary)</li>
                   <li><a href="https://salsa.debian.org/mendezr/brow6el">brow6el</a> (MIT) &mdash; <a href="https://bugs.debian.org/1135705">ITP #1135705</a></li>
