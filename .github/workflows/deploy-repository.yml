@@ -495,8 +495,13 @@ jobs:
               # Debian testing (rolling)
               echo "deb [signed-by=/etc/apt/keyrings/stremio-debian.gpg] https://debian.vejeta.com testing main non-free" | sudo tee /etc/apt/sources.list.d/vejeta.list
 
-              # Ubuntu 25.04 (plucky) / 24.04 (noble)
+              # Ubuntu 24.04 LTS (noble) - has the working Qt5 client (also for KDE Neon)
+              echo "deb [signed-by=/etc/apt/keyrings/stremio-debian.gpg] https://debian.vejeta.com noble main non-free" | sudo tee /etc/apt/sources.list.d/vejeta.list
+
+              # Ubuntu 25.04 (plucky) - experimental Qt6 client only (no Qt5)
               echo "deb [signed-by=/etc/apt/keyrings/stremio-debian.gpg] https://debian.vejeta.com plucky main non-free" | sudo tee /etc/apt/sources.list.d/vejeta.list</pre>
+
+              <p><strong>Ubuntu&nbsp;24.04&nbsp;(Noble) and KDE&nbsp;Neon users:</strong> use the <code>noble</code> line above &mdash; it provides the working Qt5 <code>stremio</code> client. The <code>plucky</code> suite currently ships only the experimental Qt6 client.</p>
 
               <h3>Step 3: Install</h3>
               <pre>
