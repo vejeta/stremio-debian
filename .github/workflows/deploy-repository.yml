@@ -438,6 +438,17 @@ jobs:
 
       - name: Create repository index page
         run: |
+          # Derive the deployed CEF/Chromium version from the generated sid Packages
+          # (libcef package version == upstream Chromium version). Keep highest.
+          PKGFILE=debian-repo/dists/sid/main/binary-amd64/Packages
+          CEF_SONAME=$(awk '$1=="Package:" && $2 ~ /^libcef[0-9]+$/ {print $2}' "$PKGFILE" | sort -V | tail -1)
+          CEF_FULLVER=$(awk -v p="$CEF_SONAME" '$1=="Package:"{m=($2==p)} m && $1=="Version:"{print $2}' "$PKGFILE" | sort -V | tail -1)
+          # Strip Debian revision and +ds repack suffix to get upstream Chromium version
+          CHROMIUM_VERSION=$(echo "$CEF_FULLVER" | sed 's/[-+].*//')
+          : "${CEF_SONAME:=libcef}"
+          : "${CHROMIUM_VERSION:=unknown}"
+          echo "Deployed CEF: $CEF_SONAME ($CHROMIUM_VERSION)"
+
           cat > debian-repo/index.html << 'EOF'
           <!DOCTYPE html>
           <html lang="en">
@@ -467,6 +478,10 @@ jobs:
               <h1>vejeta Debian Repository</h1>
 
               <p>Unofficial Debian packages built from source, following Debian packaging standards. Includes pre-built <strong>libcef</strong> (Chromium Embedded Framework) packages tracking latest Chromium releases &mdash; the only Debian-native CEF available (<a href="https://bugs.debian.org/915400">ITP #915400</a>, open since 2017). Applications can link against system CEF instead of bundling their own copy.</p>
+
+              <div class="info">
+                  <strong>Up to date:</strong> <code>libcef</code> is built from Debian's <a href="https://salsa.debian.org/mendezr/chromium/-/tree/cef">chromium packaging (cef branch)</a> &mdash; currently <strong>Chromium __CHROMIUM_VERSION__</strong> (<code>__CEF_SONAME__</code>), inheriting upstream Chromium and Debian <a href="https://security-tracker.debian.org/tracker/source-package/chromium">security fixes</a>.
+              </div>
 
               <div class="info">
                   <strong>Third-party repository:</strong> These packages are not yet part of the official Debian archive. They have been submitted for review via ITPs and are pending sponsorship. See <a href="#source-code">Source Code &amp; ITPs</a> below.
@@ -531,7 +546,7 @@ jobs:
                   <tr><td><strong>stremio</strong></td><td>Stremio media center (Qt5, legacy)</td><td>main</td><td>bookworm, trixie, testing, sid, noble</td><td>amd64, arm64</td></tr>
                   <tr><td><strong>stremio-server</strong></td><td>Stremio streaming server</td><td>non-free</td><td>all</td><td>all</td></tr>
                   <tr><td><strong>brow6el</strong></td><td>Terminal web browser (CEF/Sixel)</td><td>main</td><td>sid</td><td>amd64</td></tr>
-                  <tr><td><strong>libcef148</strong></td><td>Chromium Embedded Framework</td><td>main</td><td>sid</td><td>amd64</td></tr>
+                  <tr><td><strong>__CEF_SONAME__</strong></td><td>Chromium Embedded Framework (Chromium __CHROMIUM_VERSION__)</td><td>main</td><td>sid</td><td>amd64</td></tr>
                   <tr><td><strong>libcef-dev</strong></td><td>CEF development headers</td><td>main</td><td>sid</td><td>amd64</td></tr>
                   <tr><td><strong>libcef-common</strong></td><td>CEF resources (locales, PAK files)</td><td>main</td><td>sid</td><td>all</td></tr>
                   <tr><td><strong>librust-cef-dev</strong></td><td>Rust CEF bindings</td><td>main</td><td>sid</td><td>amd64</td></tr>
@@ -580,6 +595,15 @@ jobs:
 
           # Update build date
           sed -i "s/BUILD_DATE/$(date -u +"%Y-%m-%d %H:%M UTC")/" debian-repo/index.html
+
+          # Substitute the derived CEF/Chromium version into the page
+          sed -i "s/__CEF_SONAME__/$CEF_SONAME/g; s/__CHROMIUM_VERSION__/$CHROMIUM_VERSION/g" debian-repo/index.html
+
+          # Emit a shields.io endpoint badge source so README/badges auto-update on every deploy
+          cat > debian-repo/version.json << JSON
+          {"schemaVersion":1,"label":"chromium (cef)","message":"$CHROMIUM_VERSION","color":"blue"}
+          JSON
+          echo "Wrote version.json: $(cat debian-repo/version.json)"
 
       - name: Display repository structure
         run: |
