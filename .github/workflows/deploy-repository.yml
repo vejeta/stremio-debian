@@ -115,9 +115,23 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          # Find all stable CEF releases (tag format: cef-X.X.X, excludes prereleases)
-          # Keep all versions so soname-versioned libcefXXX packages coexist
-          CEF_TAGS=$(gh release list --limit 20 --exclude-pre-releases --json tagName -q '.[].tagName' | grep "^cef-" || true)
+          # Find stable CEF releases (tag format: cef-X.X.X, excludes prereleases).
+          # Soname-versioned libcefXXX packages coexist, but keeping *every* major
+          # bloats the Pages artifact past its 1 GB limit, so retain only the most
+          # recent KEEP_CEF_MAJORS majors (each ~100+ MB with runtime + dbgsym).
+          KEEP_CEF_MAJORS="${KEEP_CEF_MAJORS:-3}"
+          ALL_CEF_TAGS=$(gh release list --limit 50 --exclude-pre-releases --json tagName -q '.[].tagName' | grep "^cef-" || true)
+          KEEP_MAJORS=$(printf '%s\n' "$ALL_CEF_TAGS" | sed -E 's/^cef-([0-9]+).*/\1/' | sort -rn -u | head -n "$KEEP_CEF_MAJORS")
+          echo "Keeping CEF majors: $(printf '%s ' $KEEP_MAJORS)"
+          CEF_TAGS=""
+          for t in $ALL_CEF_TAGS; do
+            m=$(printf '%s' "$t" | sed -E 's/^cef-([0-9]+).*/\1/')
+            if printf '%s\n' "$KEEP_MAJORS" | grep -qx "$m"; then
+              CEF_TAGS="$CEF_TAGS $t"
+            else
+              echo "  Pruning old CEF release from repo: $t"
+            fi
+          done
 
           if [ -n "$CEF_TAGS" ]; then
             mkdir -p temp-cef-downloads

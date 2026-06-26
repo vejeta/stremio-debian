@@ -22,8 +22,46 @@ env:
   DEBFULLNAME: "Juan Manuel Mendez Rey"
 
 jobs:
+  preflight:
+    name: Preflight version-consistency check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify CEF/rust-cef versions are consistent before building
+        run: |
+          set -euo pipefail
+          SALSA=https://salsa.debian.org/mendezr
+          REPO=https://debian.vejeta.com
+
+          # What stremio-gtk (Salsa master) requires
+          CTRL=$(curl -fsSL "$SALSA/stremio-gtk/-/raw/master/debian/control")
+          LIBCEF_MAJOR=$(printf '%s\n' "$CTRL" | grep -oE 'libcef[0-9]+' | head -1 | grep -oE '[0-9]+')
+          RUST_REQ_MAJOR=$(printf '%s\n' "$CTRL" | grep -oE 'librust-cef-dev \(>= [0-9]+' | grep -oE '[0-9]+' | head -1)
+
+          # What rust-cef / rust-cef-dll-sys (Salsa main) will build
+          RUST_CEF_MAJOR=$(curl -fsSL "$SALSA/rust-cef/-/raw/main/changelog" | head -1 | grep -oE '\([0-9]+' | grep -oE '[0-9]+')
+          RUST_DLL_MAJOR=$(curl -fsSL "$SALSA/rust-cef-dll-sys/-/raw/main/changelog" | head -1 | grep -oE '\([0-9]+' | grep -oE '[0-9]+')
+
+          # What the APT repo can provide as a build-dep
+          REPO_LIBCEFDEV_MAJOR=$(curl -fsSL "$REPO/dists/sid/main/binary-amd64/Packages" \
+            | awk '/^Package: libcef-dev$/{f=1} f&&/^Version:/{print $2; f=0}' | sort -V | tail -1 | grep -oE '^[0-9]+' || true)
+
+          echo "stremio-gtk needs: libcef$LIBCEF_MAJOR, librust-cef-dev (>= $RUST_REQ_MAJOR)"
+          echo "rust-cef builds: $RUST_CEF_MAJOR | rust-cef-dll-sys builds: $RUST_DLL_MAJOR"
+          echo "APT repo libcef-dev: $REPO_LIBCEFDEV_MAJOR"
+
+          fail=0
+          if [ -n "$RUST_REQ_MAJOR" ]; then
+            [ "${RUST_CEF_MAJOR:-0}" -ge "$RUST_REQ_MAJOR" ] || { echo "::error::rust-cef builds $RUST_CEF_MAJOR but stremio-gtk needs librust-cef-dev (>= $RUST_REQ_MAJOR). Update the rust-cef submodule to >= $RUST_REQ_MAJOR on Salsa."; fail=1; }
+            [ "${RUST_DLL_MAJOR:-0}" -ge "$RUST_REQ_MAJOR" ] || { echo "::error::rust-cef-dll-sys builds $RUST_DLL_MAJOR but stremio-gtk needs >= $RUST_REQ_MAJOR. Update the rust-cef-dll-sys submodule."; fail=1; }
+          fi
+          if [ -n "$LIBCEF_MAJOR" ]; then
+            [ "${REPO_LIBCEFDEV_MAJOR:-0}" -ge "$LIBCEF_MAJOR" ] || { echo "::error::APT repo has libcef-dev $REPO_LIBCEFDEV_MAJOR but stremio-gtk needs libcef$LIBCEF_MAJOR. Promote+deploy the CEF $LIBCEF_MAJOR release before building stremio-gtk."; fail=1; }
+          fi
+          exit $fail
+
   build-rust-cef-dll-sys:
     name: Build rust-cef-dll-sys - sid amd64
+    needs: [preflight]
     runs-on: ubuntu-latest
 
     steps:
@@ -32,6 +70,16 @@ jobs:
         with:
           fetch-depth: 0
           submodules: recursive
+
+      - name: Sync rust-cef-dll-sys to latest Salsa
+        run: |
+          # Salsa is the source of truth; build the latest commit, not the pin
+          # (these repos use the 'main' default branch). Keeps rust-cef-dll-sys
+          # in lockstep with stremio-gtk, which also syncs to Salsa at build time.
+          git config --global --add safe.directory '*'
+          git -C rust-cef-dll-sys fetch origin --quiet
+          git -C rust-cef-dll-sys checkout --quiet origin/main
+          echo "rust-cef-dll-sys -> $(git -C rust-cef-dll-sys log -1 --oneline)"
 
       - name: Build in sid container
         run: |
@@ -125,6 +173,14 @@ jobs:
         with:
           fetch-depth: 0
           submodules: recursive
+
+      - name: Sync rust-cef to latest Salsa
+        run: |
+          # Build the latest Salsa commit, not the pin (default branch 'main')
+          git config --global --add safe.directory '*'
+          git -C rust-cef fetch origin --quiet
+          git -C rust-cef checkout --quiet origin/main
+          echo "rust-cef -> $(git -C rust-cef log -1 --oneline)"
 
       - name: Download rust-cef-dll-sys packages
         uses: actions/download-artifact@v8
@@ -371,6 +427,7 @@ jobs:
 
   build-stremio-server:
     name: Build stremio-server - sid
+    needs: [preflight]
     runs-on: ubuntu-latest
 
     steps:
