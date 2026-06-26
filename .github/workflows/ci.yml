@@ -1,0 +1,69 @@
+name: CI
+
+# Lightweight, continuous health check for the default branch.
+# Runs on every push to main and on pull requests, so the CI badge always
+# reflects current main — unlike the release workflow, which only runs on tags.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate workflows and scripts
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Validate YAML (workflows + stremio.yaml)
+        run: |
+          python3 - <<'PY'
+          import glob, yaml, sys
+          ok = True
+          for f in sorted(glob.glob('.github/workflows/*.yml')) + ['stremio.yaml']:
+              try:
+                  yaml.safe_load(open(f))
+                  print(f"OK   {f}")
+              except Exception as e:
+                  ok = False
+                  print(f"FAIL {f}: {e}")
+          sys.exit(0 if ok else 1)
+          PY
+
+      - name: Shell script syntax (bash -n)
+        run: |
+          rc=0
+          for s in $(git ls-files '*.sh'); do
+            if bash -n "$s"; then echo "OK   $s"; else echo "FAIL $s"; rc=1; fi
+          done
+          exit $rc
+
+      - name: ShellCheck (errors only)
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq shellcheck
+          shellcheck --version
+          shellcheck -S error $(git ls-files 'repository-scripts/*.sh')
+
+      - name: Sanity-check .gitmodules
+        run: |
+          names=$(git config -f .gitmodules --get-regexp '^submodule\..*\.path$' \
+            | sed -E 's/^submodule\.(.*)\.path .*/\1/')
+          rc=0
+          for name in $names; do
+            path=$(git config -f .gitmodules --get "submodule.$name.path")
+            url=$(git config -f .gitmodules --get "submodule.$name.url" || true)
+            if [ -z "$url" ]; then
+              echo "FAIL: submodule $name ($path) has no url"; rc=1
+            else
+              echo "OK   $name -> $url"
+            fi
+          done
+          exit $rc

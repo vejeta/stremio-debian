@@ -1,6 +1,7 @@
 # Stremio Debian Packages
 
-[![Build Status](https://github.com/vejeta/stremio-debian/actions/workflows/build-and-release.yml/badge.svg)](https://github.com/vejeta/stremio-debian/actions)
+[![CI](https://github.com/vejeta/stremio-debian/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/vejeta/stremio-debian/actions/workflows/ci.yml)
+[![Release](https://github.com/vejeta/stremio-debian/actions/workflows/build-and-release.yml/badge.svg?event=push)](https://github.com/vejeta/stremio-debian/actions/workflows/build-and-release.yml)
 [![Repository](https://img.shields.io/badge/APT-debian.vejeta.com-blue)](https://debian.vejeta.com)
 [![Chromium](https://img.shields.io/endpoint?url=https%3A%2F%2Fdebian.vejeta.com%2Fversion.json)](https://security-tracker.debian.org/tracker/source-package/chromium)
 ![GitHub release](https://img.shields.io/github/v/release/vejeta/stremio-debian)
