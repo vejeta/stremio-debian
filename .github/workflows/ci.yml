@@ -47,10 +47,7 @@ jobs:
           done
           exit $rc
 
-      # Advisory: surfaces shell issues without blocking the badge. Promote to a
-      # hard gate (drop continue-on-error) once the scripts are confirmed clean.
-      - name: ShellCheck (advisory)
-        continue-on-error: true
+      - name: ShellCheck (errors only)
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq shellcheck
