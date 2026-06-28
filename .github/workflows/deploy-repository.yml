@@ -597,6 +597,30 @@ jobs:
                   <li><a href="https://salsa.debian.org/mendezr/rust-cef">rust-cef</a> / <a href="https://salsa.debian.org/mendezr/rust-cef-dll-sys">rust-cef-dll-sys</a> (Apache-2.0 OR MIT)</li>
               </ul>
 
+              <h2 id="faq">FAQ &amp; Troubleshooting</h2>
+
+              <h3>I get <code>held broken packages</code> or <code>Depends: qtdeclarative-abi-5-15-13</code> on Ubuntu or KDE&nbsp;Neon</h3>
+              <p>This is fixed in the current packages. The Qt5 <code>stremio</code> package no longer pins an exact Qt&nbsp;5.15 micro&#8209;version on Ubuntu and its derivatives, so it installs on Ubuntu&nbsp;24.04 <em>and</em> on KDE&nbsp;Neon (which rebuilds Qt&nbsp;5.15 at a different point release). Refresh your package lists and retry:</p>
+              <pre>
+              sudo apt update
+              sudo apt install stremio stremio-server</pre>
+              <p>If it persists, make sure your source line uses the <code>noble</code> suite (<strong>not</strong> <code>plucky</code>) and that you ran <code>apt update</code> after adding it.</p>
+
+              <h3><code>qml-module-qtwebengine</code>, <code>libmpv2</code> or similar are &ldquo;not installable&rdquo; on Ubuntu</h3>
+              <p>These runtime dependencies live in Ubuntu&rsquo;s <code>universe</code> component. Enable it once, then update:</p>
+              <pre>
+              sudo add-apt-repository universe
+              sudo apt update</pre>
+
+              <h3><code>libmpvqt1 (&gt;= 1.0.0) but it is not installable</code> (the <code>plucky</code> line)</h3>
+              <p>The <code>plucky</code> suite ships only <code>stremio-qt6</code>, the <span class="experimental">experimental</span> Qt6 client, which needs libraries not yet packaged in Ubuntu. For a working client on <em>any</em> Ubuntu or KDE&nbsp;Neon release, use the <code>noble</code> line and install <code>stremio</code> (Qt5) &mdash; see Step&nbsp;2 above.</p>
+
+              <h3>Which repository line do I use on Ubuntu / KDE&nbsp;Neon?</h3>
+              <p>Always the <code>noble</code> line, regardless of your Ubuntu version (24.04, 24.10, 25.04&hellip;) or KDE&nbsp;Neon edition. It provides the working Qt5 client built against the Ubuntu&nbsp;LTS Qt stack. The <code>plucky</code> line is for testing the experimental Qt6 client only.</p>
+
+              <h3><code>NO_PUBKEY</code> or &ldquo;repository is not signed&rdquo;</h3>
+              <p>Re&#8209;add the signing key (Step&nbsp;1) and make sure your source line includes <code>[signed-by=/etc/apt/keyrings/stremio-debian.gpg]</code>.</p>
+
               <h2>Support</h2>
 
               <p><a href="https://github.com/vejeta/stremio-debian/issues">Report issues</a> &bull; <a href="https://github.com/vejeta/stremio-debian/releases">Download .deb files</a></p>
