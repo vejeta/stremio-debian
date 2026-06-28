@@ -621,6 +621,25 @@ jobs:
               <h3><code>NO_PUBKEY</code> or &ldquo;repository is not signed&rdquo;</h3>
               <p>Re&#8209;add the signing key (Step&nbsp;1) and make sure your source line includes <code>[signed-by=/etc/apt/keyrings/stremio-debian.gpg]</code>.</p>
 
+              <h3>I&rsquo;m on Linux&nbsp;Mint or another Ubuntu/Debian derivative &mdash; which line?</h3>
+              <p>Use the suite of the <em>base</em> your distribution is built on, not its own version number. For example Linux&nbsp;Mint&nbsp;22.x and most current Ubuntu&#8209;based spins (including KDE&nbsp;Neon) map to <code>noble</code>; LMDE and Debian&#8209;based spins use the matching Debian suite (<code>bookworm</code>, <code>trixie</code>&hellip;). If unsure, <code>cat /etc/os-release</code> and look at <code>UBUNTU_CODENAME</code> / <code>VERSION_CODENAME</code>.</p>
+
+              <h3>Black screen, crash, or <code>EGL_BAD_CONTEXT</code> on launch (often NVIDIA)</h3>
+              <p>The Qt5 <code>stremio</code> client renders through QtWebEngine&rsquo;s GPU layer, which can clash with some drivers (NVIDIA in particular). This is a <span class="experimental">known upstream/driver limitation</span>, not a packaging bug. Workarounds to try, in order:</p>
+              <pre>
+              # 1. Disable the GPU in the embedded Chromium
+              QTWEBENGINE_CHROMIUM_FLAGS="--disable-gpu" stremio
+
+              # 2. Force software OpenGL
+              LIBGL_ALWAYS_SOFTWARE=1 stremio</pre>
+              <p>If neither helps, try the <code>stremio-gtk</code> (CEF) client instead, which uses a different rendering stack.</p>
+
+              <h3>Can I run it headless (Raspberry&nbsp;Pi, no desktop)?</h3>
+              <p>No. <code>stremio</code> is a graphical application and needs an active display session (an X/Wayland server with a valid <code>$DISPLAY</code>). It will not start from a bare console or over SSH without a desktop. On a Raspberry&nbsp;Pi you need a running desktop session; there is no TV&#8209;remote/CLI&#8209;only mode like Kodi.</p>
+
+              <h3>apt warns &ldquo;changed its <code>non-free</code> component value to <code>non-free non-free-firmware</code>&rdquo;</h3>
+              <p>Harmless and cosmetic. It comes from Debian splitting <code>non-free-firmware</code> out of <code>non-free</code>; it does not affect installation. You can ignore it (or run <code>apt update</code> once to acknowledge it).</p>
+
               <h2>Support</h2>
 
               <p><a href="https://github.com/vejeta/stremio-debian/issues">Report issues</a> &bull; <a href="https://github.com/vejeta/stremio-debian/releases">Download .deb files</a></p>
