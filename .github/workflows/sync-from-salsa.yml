@@ -15,7 +15,7 @@ on:
         type: boolean
 
 env:
-  SALSA_STREMIO_REPO: "https://salsa.debian.org/mendezr/stremio.git"
+  SALSA_STREMIO_REPO: "https://salsa.debian.org/mendezr/stremio-qt5.git"
   SALSA_SERVER_REPO: "https://salsa.debian.org/mendezr/stremio-server.git"
   SALSA_GTK_REPO: "https://salsa.debian.org/mendezr/stremio-gtk.git"
   SALSA_RUST_CEF_DLL_SYS_REPO: "https://salsa.debian.org/mendezr/rust-cef-dll-sys.git"
@@ -420,7 +420,7 @@ jobs:
 
           echo "" >> commit-msg.txt
           echo "Upstream sources:" >> commit-msg.txt
-          echo "- https://salsa.debian.org/mendezr/stremio" >> commit-msg.txt
+          echo "- https://salsa.debian.org/mendezr/stremio-qt5" >> commit-msg.txt
           echo "- https://salsa.debian.org/mendezr/stremio-server" >> commit-msg.txt
           echo "- https://salsa.debian.org/mendezr/stremio-gtk" >> commit-msg.txt
           echo "- https://salsa.debian.org/mendezr/rust-cef-dll-sys" >> commit-msg.txt

@@ -590,7 +590,7 @@ jobs:
               <ul>
                   <li><a href="https://salsa.debian.org/mendezr/stremio-gtk">stremio-gtk</a> (GPL-3.0) &mdash; <a href="https://bugs.debian.org/1119815">ITP #1119815</a></li>
                   <li><a href="https://salsa.debian.org/mendezr/stremio-qt6">stremio-qt6</a> (GPL-3.0) &mdash; <span class="experimental">experimental</span></li>
-                  <li><a href="https://salsa.debian.org/mendezr/stremio">stremio</a> (GPL-3.0) &mdash; <a href="https://bugs.debian.org/943703">ITP #943703</a></li>
+                  <li><a href="https://salsa.debian.org/mendezr/stremio-qt5">stremio</a> (GPL-3.0) &mdash; <a href="https://bugs.debian.org/943703">ITP #943703</a></li>
                   <li><a href="https://salsa.debian.org/mendezr/stremio-server">stremio-server</a> (Proprietary)</li>
                   <li><a href="https://salsa.debian.org/mendezr/brow6el">brow6el</a> (MIT) &mdash; <a href="https://bugs.debian.org/1135705">ITP #1135705</a></li>
                   <li><a href="https://salsa.debian.org/mendezr/chromium/-/tree/cef">chromium CEF build profile</a> (BSD-3-Clause) &mdash; <a href="https://bugs.debian.org/915400">ITP #915400</a></li>

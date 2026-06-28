@@ -445,7 +445,7 @@ jobs:
           ## Changes
 
           See individual package changelogs in the source repositories:
-          - https://salsa.debian.org/mendezr/stremio
+          - https://salsa.debian.org/mendezr/stremio-qt5
           - https://salsa.debian.org/mendezr/stremio-server
 
           ## Build Information
