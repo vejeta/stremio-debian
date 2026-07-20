@@ -190,8 +190,8 @@ This repository uses **separate releases** for different package groups:
 | Release Tag | Packages | Distribution |
 |-------------|----------|--------------|
 | `v*` (e.g., v5.0.0) | stremio (Qt5), stremio-server | All |
-| `gtk-*` (e.g., gtk-1.0.0-beta.13.ds-1) | stremio-gtk, stremio-server, librust-cef-dev, librust-cef-dll-sys-dev | sid only |
-| `cef-*` (e.g., cef-149.0.7827.155) | libcef\<N\>, libcef-common, libcef-dev | sid only |
+| `gtk-*` (e.g., gtk-1.0.0-beta.13.ds-5) | stremio-gtk, stremio-server, librust-cef-dev, librust-cef-dll-sys-dev | sid only |
+| `cef-*` (e.g., cef-150.0.7871.114) | libcef\<N\>, libcef-common, libcef-dev | sid only |
 | `brow6el-*` (e.g., brow6el-0.3.4-1) | brow6el | sid only |
 
 **For users**: The APT repository at `debian.vejeta.com` combines all packages automatically. Just `apt install` what you need.
