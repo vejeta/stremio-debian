@@ -144,6 +144,30 @@ jobs:
             make -f debian/rules get-cef-source
           fi
 
+          # Pre-generation component tarball (Chromium 151+, ~15MB, from the Debian
+          # archive). Chromium 151 ships build-time-generated sources here (pre-gen/);
+          # without it the Dawn/tint Go generator runs and fails on the offline,
+          # read-only buildd. Older Chromium versions have no such tarball (404 -> skip).
+          if [ -f "../chromium_${UPVER}.orig-pre-gen.tar.xz" ] && [ "${{ inputs.force_rebuild }}" != "true" ]; then
+            echo "Pre-gen component tarball already cached"
+            ls -lh "../chromium_${UPVER}.orig-pre-gen.tar.xz"
+          else
+            echo "==> Downloading pre-gen component tarball from Debian archive"
+            rm -f "../chromium_${UPVER}.orig-pre-gen.tar.xz"
+            PREGEN_URL="https://deb.debian.org/debian/pool/main/c/chromium/chromium_${UPVER}.orig-pre-gen.tar.xz"
+            code=$(curl -sSL -o "../chromium_${UPVER}.orig-pre-gen.tar.xz" -w '%{http_code}' "$PREGEN_URL" || echo 000)
+            if [ "$code" = "200" ]; then
+              echo "Downloaded pre-gen tarball"
+            elif [ "$code" = "404" ]; then
+              echo "No pre-gen tarball for ${UPVER} (Chromium <151); skipping"
+              rm -f "../chromium_${UPVER}.orig-pre-gen.tar.xz"
+            else
+              echo "::error::Failed to download pre-gen tarball (HTTP $code): $PREGEN_URL"
+              rm -f "../chromium_${UPVER}.orig-pre-gen.tar.xz"
+              exit 1
+            fi
+          fi
+
           cd ..
           echo "=== Orig tarballs ==="
           ls -lh chromium_${UPVER}.orig*.tar.xz
@@ -162,6 +186,15 @@ jobs:
 
           echo "==> Extracting CEF component tarball"
           tar xf "chromium_${UPVER}.orig-cef.tar.xz" -C tmp/dsc-build
+
+          # Pre-gen component (Chromium 151+): standard MUT tarball with pre-gen/ at
+          # the top level, so extract it INTO the source dir. Skipped if not present
+          # (older Chromium). dpkg-source autodetects the component from the filename.
+          if [ -f "chromium_${UPVER}.orig-pre-gen.tar.xz" ]; then
+            echo "==> Extracting pre-gen component tarball"
+            tar xf "chromium_${UPVER}.orig-pre-gen.tar.xz" -C "tmp/dsc-build/chromium-${UPVER}"
+            ln -sf "$PWD/chromium_${UPVER}.orig-pre-gen.tar.xz" tmp/dsc-build/
+          fi
 
           ln -sf "$PWD/chromium_${UPVER}.orig.tar.xz" tmp/dsc-build/
           ln -sf "$PWD/chromium_${UPVER}.orig-cef.tar.xz" tmp/dsc-build/
