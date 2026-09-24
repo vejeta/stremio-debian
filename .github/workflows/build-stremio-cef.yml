@@ -292,9 +292,10 @@ jobs:
     # dpkg -i / apt-get -f dance rather than the packages themselves. sbuild
     # resolves debian/control's Build-Depends via plain `apt-get build-dep`,
     # which never puts dpkg through that unconfigured-then-fixed sequence.
-    # Freshly-built rust-cef-dll-sys/rust-cef debs are exposed to sbuild via
-    # a local file:// apt repository (dpkg-scanpackages), so sbuild picks
-    # them up like any other archive package instead of a manual dpkg -i.
+    # Freshly-built rust-cef-dll-sys/rust-cef debs are handed to sbuild with
+    # --extra-package=<dir>, which copies them into the chroot as a local
+    # repository, so apt resolves them like any other archive package
+    # instead of a manual dpkg -i.
 
     steps:
       - name: Checkout repository with submodules
@@ -323,19 +324,28 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            sbuild mmdebstrap uidmap dpkg-dev debhelper \
+            sbuild mmdebstrap uidmap dpkg-dev debhelper debian-archive-keyring \
             git-buildpackage pristine-tar quilt devscripts lintian
           sbuild --version
 
-      - name: Build local apt repository from freshly-built rust-cef debs
+      - name: Create sbuild unstable chroot tarball
         run: |
-          cd local-repo
-          ls -lh
-          dpkg-scanpackages . /dev/null > Packages
-          gzip -9c Packages > Packages.gz
-          cd ..
-          echo "Local repo contents:"
-          cat local-repo/Packages | grep -E "^Package:|^Version:"
+          # Ubuntu 24.04 restricts unprivileged user namespaces through
+          # AppArmor; unshare-mode mmdebstrap and sbuild both need them.
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 || true
+          # Ubuntu's sbuild (0.85) does not bootstrap an unshare chroot on its
+          # own: it expects ~/.cache/sbuild/<dist>-<arch>.tar to exist. The
+          # self-hosted CEF runner has one from its initial setup; this
+          # ephemeral runner has to create it every time.
+          mkdir -p ~/.cache/sbuild
+          mmdebstrap --variant=buildd --include=ca-certificates \
+            --keyring=/usr/share/keyrings/debian-archive-keyring.gpg \
+            unstable ~/.cache/sbuild/unstable-amd64.tar \
+            http://deb.debian.org/debian
+          ls -lh ~/.cache/sbuild/
+
+      - name: List freshly-built rust-cef debs
+        run: ls -lh local-repo/
 
       - name: Sync stremio-cef to latest Salsa and generate source package
         run: |
@@ -385,7 +395,7 @@ jobs:
             --chroot-mode=unshare \
             --build-dep-resolver=apt --verbose \
             --extra-repository="deb [trusted=yes] https://debian.vejeta.com sid main non-free" \
-            --extra-repository="deb [trusted=yes] file://$PWD/local-repo ./" \
+            --extra-package="$PWD/local-repo" \
             "stremio-cef_${FULLVER}.dsc" \
             2>&1 | tee "$LOGFILE"
 
