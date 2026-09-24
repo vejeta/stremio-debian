@@ -323,7 +323,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            sbuild mmdebstrap uidmap dpkg-dev \
+            sbuild mmdebstrap uidmap dpkg-dev debhelper \
             git-buildpackage pristine-tar quilt devscripts lintian
           sbuild --version
 
