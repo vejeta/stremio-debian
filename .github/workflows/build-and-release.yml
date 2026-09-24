@@ -125,7 +125,8 @@ jobs:
               # revision). SRCPKG must be derived, not hardcoded: gbp/dpkg-source
               # expect the orig tarball name to match the CURRENT Source: field
               # (stremio-qt5, since the 2026-09-24 rename from stremio), regardless
-              # of what the pristine-tar branch's existing deltas are named.
+              # of how the existing pristine-tar deltas are named. (No
+              # apostrophes in this block: it is inside bash -c single quotes.)
               if [ -f debian/changelog ]; then
                 SRCPKG=$(dpkg-parsechangelog -S Source)
                 VERSION=$(dpkg-parsechangelog -S Version | cut -d- -f1)
