@@ -170,8 +170,17 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          # Find latest stremio-cef release (tag format: stremio-cef-X.X.X)
+          # Find latest stremio-cef release (tag format: stremio-cef-X.X.X).
+          # TEMPORARY fallback to the pre-rename gtk-* prefix: as of 2026-09-24 no
+          # stremio-cef-* release has been built yet under the new workflow, so without
+          # this the last already-published gtk-* release (stremio-gtk, stremio-server,
+          # librust-cef-dev, librust-cef-dll-sys-dev) silently drops out of the repo.
+          # Remove this fallback once a real stremio-cef-* release exists.
           STREMIO_CEF_TAG=$(gh release list --limit 20 --json tagName -q '.[].tagName' | grep "^stremio-cef-" | head -1)
+          if [ -z "$STREMIO_CEF_TAG" ]; then
+            STREMIO_CEF_TAG=$(gh release list --limit 20 --json tagName -q '.[].tagName' | grep "^gtk-" | head -1)
+            [ -n "$STREMIO_CEF_TAG" ] && echo "No stremio-cef-* release yet; falling back to pre-rename tag: $STREMIO_CEF_TAG"
+          fi
 
           if [ -n "$STREMIO_CEF_TAG" ]; then
             echo "Downloading stremio-cef packages from release: $STREMIO_CEF_TAG"
