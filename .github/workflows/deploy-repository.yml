@@ -2,7 +2,10 @@ name: Deploy APT Repository to GitHub Pages
 
 on:
   repository_dispatch:
-    types: [packages-updated, cef-packages-updated, stremio-cef-packages-updated, qt6-packages-updated, brow6el-packages-updated]
+    # TEMPORARY (2026-09-25): packages-updated (stremio-qt5 / stremio-server
+    # v* releases) removed so the first stremio-qt5 rename release is reviewed
+    # before it is published; deploy it by hand, then restore it here.
+    types: [cef-packages-updated, stremio-cef-packages-updated, qt6-packages-updated, brow6el-packages-updated]
   workflow_dispatch:
     inputs:
       force_rebuild:
