@@ -207,6 +207,12 @@ jobs:
           for deb in stremio-qt5/../*.deb; do
             if [ -f "$deb" ]; then
               filename=$(basename "$deb")
+              # Architecture: all packages (the transitional stremio) are
+              # built identically by every arch leg of a distro; keep only
+              # the amd64 copy, or the release upload collides on the name.
+              if [[ "$filename" == *_all.deb ]] && [ "${{ matrix.arch }}" != "amd64" ]; then
+                continue
+              fi
               # Insert distro name before .deb extension
               # stremio_4.4.169+dfsg-1_amd64.deb -> stremio_4.4.169+dfsg-1_amd64-trixie.deb
               newname="${filename%.deb}-${{ matrix.distro }}.deb"
