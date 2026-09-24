@@ -121,10 +121,15 @@ jobs:
               echo "=== Fetching pristine-tar and upstream branches ==="
               git fetch origin pristine-tar:pristine-tar upstream:upstream || true
 
-              # Get version from changelog (without debian revision)
+              # Get source package name and version from changelog (without debian
+              # revision). SRCPKG must be derived, not hardcoded: gbp/dpkg-source
+              # expect the orig tarball name to match the CURRENT Source: field
+              # (stremio-qt5, since the 2026-09-24 rename from stremio), regardless
+              # of what the pristine-tar branch's existing deltas are named.
               if [ -f debian/changelog ]; then
+                SRCPKG=$(dpkg-parsechangelog -S Source)
                 VERSION=$(dpkg-parsechangelog -S Version | cut -d- -f1)
-                echo "Creating upstream tarball for version: $VERSION"
+                echo "Creating upstream tarball for $SRCPKG version: $VERSION"
               else
                 echo "Error: debian/changelog not found"
                 exit 1
@@ -133,32 +138,32 @@ jobs:
               # Try pristine-tar with both .tar.xz and .tar.gz formats
               if git rev-parse --verify pristine-tar >/dev/null 2>&1; then
                 echo "Attempting to use pristine-tar..."
-                if pristine-tar checkout ../stremio_${VERSION}.orig.tar.xz 2>/dev/null; then
+                if pristine-tar checkout ../${SRCPKG}_${VERSION}.orig.tar.xz 2>/dev/null; then
                   echo "✓ Generated tarball from pristine-tar (tar.xz)"
-                elif pristine-tar checkout ../stremio_${VERSION}.orig.tar.gz 2>/dev/null; then
+                elif pristine-tar checkout ../${SRCPKG}_${VERSION}.orig.tar.gz 2>/dev/null; then
                   echo "✓ Generated tarball from pristine-tar (tar.gz)"
                 fi
               fi
 
               # If pristine-tar did not work, create from upstream tag
-              if [ ! -f ../stremio_${VERSION}.orig.tar.xz ] && [ ! -f ../stremio_${VERSION}.orig.tar.gz ]; then
+              if [ ! -f ../${SRCPKG}_${VERSION}.orig.tar.xz ] && [ ! -f ../${SRCPKG}_${VERSION}.orig.tar.gz ]; then
                 echo "Generating tarball from upstream tag..."
                 UPSTREAM_TAG=$(git tag -l "upstream/*" | grep -E "${VERSION%+*}" | tail -1)
 
                 if [ -n "$UPSTREAM_TAG" ]; then
                   echo "Using upstream tag: $UPSTREAM_TAG"
-                  git archive --format=tar --prefix=stremio-${VERSION%+*}/ $UPSTREAM_TAG | xz > ../stremio_${VERSION}.orig.tar.xz
+                  git archive --format=tar --prefix=${SRCPKG}-${VERSION%+*}/ $UPSTREAM_TAG | xz > ../${SRCPKG}_${VERSION}.orig.tar.xz
                 else
                   echo "No upstream tag found, creating from current source..."
                   cd ..
                   tar --exclude-vcs --exclude=debian --exclude=.pc \
-                    -cJf stremio_${VERSION}.orig.tar.xz stremio-qt5/
+                    -cJf ${SRCPKG}_${VERSION}.orig.tar.xz stremio-qt5/
                   cd stremio-qt5
                 fi
               fi
 
               # Show what we created
-              ls -lh ../stremio_${VERSION}.orig.tar.* || true
+              ls -lh ../${SRCPKG}_${VERSION}.orig.tar.* || true
 
               # Build both source and binary packages
               echo "=== Building packages ==="
@@ -173,21 +178,22 @@ jobs:
                 echo "=== Ubuntu Package Smoke Test ==="
                 apt install -y ../*.deb || true
 
-                # Test binary exists
-                which stremio && echo "✓ stremio binary found" || echo "✗ stremio binary not found"
+                # Test binary exists (renamed stremio -> stremio-qt5 on 2026-09-24,
+                # now that Debian ships its own stremio, the WebKitGTK6 rewrite)
+                which stremio-qt5 && echo "✓ stremio-qt5 binary found" || echo "✗ stremio-qt5 binary not found"
 
                 # Test version
-                stremio --version 2>&1 || true
+                stremio-qt5 --version 2>&1 || true
 
                 # Check dependencies
                 echo "=== Checking linked libraries ==="
-                ldd /usr/bin/stremio | grep -E "(libQt5|libmpv|libcrypto)" || true
+                ldd /usr/bin/stremio-qt5 | grep -E "(libQt5|libmpv|libcrypto)" || true
 
                 # Test headless launch (will timeout, that is expected)
                 echo "=== Testing headless GUI initialization ==="
                 export QT_QPA_PLATFORM=offscreen
                 export QTWEBENGINE_DISABLE_SANDBOX=1
-                timeout 10s stremio 2>&1 || echo "✓ GUI initialization test completed"
+                timeout 10s stremio-qt5 2>&1 || echo "✓ GUI initialization test completed"
               fi
             '
 
