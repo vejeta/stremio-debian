@@ -290,7 +290,7 @@ jobs:
 
           ## Why stremio-qt6?
 
-          This is an experimental Qt6 port intended as a workaround for users who prefer KDE/Plasma or Qt-based desktop environments and want a non-deprecated Qt client. The recommended client for Debian sid remains **stremio-gtk**.
+          This is an experimental Qt6 port intended as a workaround for users who prefer KDE/Plasma or Qt-based desktop environments and want a non-deprecated Qt client. Not recommended yet &mdash; prefer Debian's own **stremio**, or **stremio-cef**/**stremio-qt5** from this repo.
 
           ## Distributions
 

@@ -17,7 +17,7 @@ on:
 env:
   SALSA_STREMIO_REPO: "https://salsa.debian.org/mendezr/stremio-qt5.git"
   SALSA_SERVER_REPO: "https://salsa.debian.org/mendezr/stremio-server.git"
-  SALSA_GTK_REPO: "https://salsa.debian.org/mendezr/stremio-gtk.git"
+  SALSA_STREMIO_CEF_REPO: "https://salsa.debian.org/mendezr/stremio-cef.git"
   SALSA_RUST_CEF_DLL_SYS_REPO: "https://salsa.debian.org/mendezr/rust-cef-dll-sys.git"
   SALSA_RUST_CEF_REPO: "https://salsa.debian.org/mendezr/rust-cef.git"
   SALSA_STREMIO_QT6_REPO: "https://salsa.debian.org/mendezr/stremio-qt6.git"
@@ -65,13 +65,13 @@ jobs:
           echo "Latest Salsa commit: $LATEST_SALSA_COMMIT"
           cd ../..
 
-      - name: Clone stremio-gtk from Salsa
+      - name: Clone stremio-cef from Salsa
         run: |
-          echo "=== Cloning stremio-gtk from Salsa ==="
-          git clone --bare "$SALSA_GTK_REPO" sync-temp/stremio-gtk.git
-          cd sync-temp/stremio-gtk.git
+          echo "=== Cloning stremio-cef from Salsa ==="
+          git clone --bare "$SALSA_STREMIO_CEF_REPO" sync-temp/stremio-cef.git
+          cd sync-temp/stremio-cef.git
           LATEST_SALSA_COMMIT=$(git rev-parse HEAD)
-          echo "LATEST_SALSA_GTK_COMMIT=$LATEST_SALSA_COMMIT" >> $GITHUB_ENV
+          echo "LATEST_SALSA_STREMIO_CEF_COMMIT=$LATEST_SALSA_COMMIT" >> $GITHUB_ENV
           echo "Latest Salsa commit: $LATEST_SALSA_COMMIT"
           cd ../..
 
@@ -162,27 +162,27 @@ jobs:
             echo "Server directory doesn't exist, needs initial sync"
           fi
 
-      - name: Check if stremio-gtk needs update
-        id: check_gtk
+      - name: Check if stremio-cef needs update
+        id: check_stremio_cef
         run: |
-          if [ -d "stremio-gtk/.git" ]; then
-            cd stremio-gtk
+          if [ -d "stremio-cef/.git" ]; then
+            cd stremio-cef
             CURRENT_COMMIT=$(git rev-parse HEAD)
-            echo "CURRENT_GTK_COMMIT=$CURRENT_COMMIT" >> $GITHUB_ENV
+            echo "CURRENT_STREMIO_CEF_COMMIT=$CURRENT_COMMIT" >> $GITHUB_ENV
             echo "Current commit: $CURRENT_COMMIT"
-            echo "Latest Salsa commit: $LATEST_SALSA_GTK_COMMIT"
+            echo "Latest Salsa commit: $LATEST_SALSA_STREMIO_CEF_COMMIT"
 
-            if [ "$CURRENT_COMMIT" != "$LATEST_SALSA_GTK_COMMIT" ] || [ "${{ inputs.force_sync }}" == "true" ]; then
+            if [ "$CURRENT_COMMIT" != "$LATEST_SALSA_STREMIO_CEF_COMMIT" ] || [ "${{ inputs.force_sync }}" == "true" ]; then
               echo "needs_update=true" >> $GITHUB_OUTPUT
-              echo "stremio-gtk needs update"
+              echo "stremio-cef needs update"
             else
               echo "needs_update=false" >> $GITHUB_OUTPUT
-              echo "stremio-gtk is up to date"
+              echo "stremio-cef is up to date"
             fi
             cd ..
           else
             echo "needs_update=true" >> $GITHUB_OUTPUT
-            echo "stremio-gtk directory doesn't exist, needs initial sync"
+            echo "stremio-cef directory doesn't exist, needs initial sync"
           fi
 
       - name: Check if rust-cef-dll-sys needs update
@@ -303,18 +303,18 @@ jobs:
 
           echo "✓ stremio-server synced successfully"
 
-      - name: Sync stremio-gtk
-        if: steps.check_gtk.outputs.needs_update == 'true'
+      - name: Sync stremio-cef
+        if: steps.check_stremio_cef.outputs.needs_update == 'true'
         run: |
-          echo "=== Syncing stremio-gtk ==="
+          echo "=== Syncing stremio-cef ==="
 
           # Remove existing directory if it exists
-          rm -rf stremio-gtk
+          rm -rf stremio-cef
 
           # Clone fresh from Salsa
-          git clone "$SALSA_GTK_REPO" stremio-gtk
+          git clone "$SALSA_STREMIO_CEF_REPO" stremio-cef
 
-          echo "✓ stremio-gtk synced successfully"
+          echo "✓ stremio-cef synced successfully"
 
       - name: Sync rust-cef-dll-sys
         if: steps.check_rust_cef_dll_sys.outputs.needs_update == 'true'
@@ -369,10 +369,10 @@ jobs:
           echo "brow6el synced successfully"
 
       - name: Commit and push changes
-        if: steps.check_client.outputs.needs_update == 'true' || steps.check_server.outputs.needs_update == 'true' || steps.check_gtk.outputs.needs_update == 'true' || steps.check_rust_cef_dll_sys.outputs.needs_update == 'true' || steps.check_rust_cef.outputs.needs_update == 'true' || steps.check_qt6.outputs.needs_update == 'true' || steps.check_brow6el.outputs.needs_update == 'true'
+        if: steps.check_client.outputs.needs_update == 'true' || steps.check_server.outputs.needs_update == 'true' || steps.check_stremio_cef.outputs.needs_update == 'true' || steps.check_rust_cef_dll_sys.outputs.needs_update == 'true' || steps.check_rust_cef.outputs.needs_update == 'true' || steps.check_qt6.outputs.needs_update == 'true' || steps.check_brow6el.outputs.needs_update == 'true'
         run: |
           # Add changes
-          git add stremio-qt5 stremio-qt6 stremio-server stremio-gtk rust-cef-dll-sys rust-cef brow6el
+          git add stremio-qt5 stremio-qt6 stremio-server stremio-cef rust-cef-dll-sys rust-cef brow6el
 
           # Check if there are actually changes to commit
           if git diff --cached --quiet; then
@@ -398,8 +398,8 @@ jobs:
             echo "- stremio-server: ${CURRENT_SERVER_COMMIT:0:8} → ${LATEST_SALSA_SERVER_COMMIT:0:8}" >> commit-msg.txt
           fi
 
-          if [ "${{ steps.check_gtk.outputs.needs_update }}" == "true" ]; then
-            echo "- stremio-gtk: ${CURRENT_GTK_COMMIT:0:8} → ${LATEST_SALSA_GTK_COMMIT:0:8}" >> commit-msg.txt
+          if [ "${{ steps.check_stremio_cef.outputs.needs_update }}" == "true" ]; then
+            echo "- stremio-cef: ${CURRENT_STREMIO_CEF_COMMIT:0:8} → ${LATEST_SALSA_STREMIO_CEF_COMMIT:0:8}" >> commit-msg.txt
           fi
 
           if [ "${{ steps.check_rust_cef_dll_sys.outputs.needs_update }}" == "true" ]; then
@@ -422,7 +422,7 @@ jobs:
           echo "Upstream sources:" >> commit-msg.txt
           echo "- https://salsa.debian.org/mendezr/stremio-qt5" >> commit-msg.txt
           echo "- https://salsa.debian.org/mendezr/stremio-server" >> commit-msg.txt
-          echo "- https://salsa.debian.org/mendezr/stremio-gtk" >> commit-msg.txt
+          echo "- https://salsa.debian.org/mendezr/stremio-cef" >> commit-msg.txt
           echo "- https://salsa.debian.org/mendezr/rust-cef-dll-sys" >> commit-msg.txt
           echo "- https://salsa.debian.org/mendezr/rust-cef" >> commit-msg.txt
           echo "- https://salsa.debian.org/mendezr/stremio-qt6" >> commit-msg.txt
@@ -446,7 +446,7 @@ jobs:
             {
               "client_updated": "${{ steps.check_client.outputs.needs_update }}",
               "server_updated": "${{ steps.check_server.outputs.needs_update }}",
-              "gtk_updated": "${{ steps.check_gtk.outputs.needs_update }}",
+              "stremio_cef_updated": "${{ steps.check_stremio_cef.outputs.needs_update }}",
               "rust_cef_dll_sys_updated": "${{ steps.check_rust_cef_dll_sys.outputs.needs_update }}",
               "rust_cef_updated": "${{ steps.check_rust_cef.outputs.needs_update }}",
               "qt6_updated": "${{ steps.check_qt6.outputs.needs_update }}",
@@ -457,13 +457,13 @@ jobs:
         run: |
           echo "=== Sync Summary ==="
           echo ""
-          if [ "${{ steps.check_client.outputs.needs_update }}" == "true" ] || [ "${{ steps.check_server.outputs.needs_update }}" == "true" ] || [ "${{ steps.check_gtk.outputs.needs_update }}" == "true" ] || [ "${{ steps.check_rust_cef_dll_sys.outputs.needs_update }}" == "true" ] || [ "${{ steps.check_rust_cef.outputs.needs_update }}" == "true" ] || [ "${{ steps.check_brow6el.outputs.needs_update }}" == "true" ]; then
+          if [ "${{ steps.check_client.outputs.needs_update }}" == "true" ] || [ "${{ steps.check_server.outputs.needs_update }}" == "true" ] || [ "${{ steps.check_stremio_cef.outputs.needs_update }}" == "true" ] || [ "${{ steps.check_rust_cef_dll_sys.outputs.needs_update }}" == "true" ] || [ "${{ steps.check_rust_cef.outputs.needs_update }}" == "true" ] || [ "${{ steps.check_brow6el.outputs.needs_update }}" == "true" ]; then
             echo "✓ Updates found and synced"
             echo ""
             echo "Updated components:"
             [ "${{ steps.check_client.outputs.needs_update }}" == "true" ] && echo "  - stremio-qt5"
             [ "${{ steps.check_server.outputs.needs_update }}" == "true" ] && echo "  - stremio-server"
-            [ "${{ steps.check_gtk.outputs.needs_update }}" == "true" ] && echo "  - stremio-gtk"
+            [ "${{ steps.check_stremio_cef.outputs.needs_update }}" == "true" ] && echo "  - stremio-cef"
             [ "${{ steps.check_rust_cef_dll_sys.outputs.needs_update }}" == "true" ] && echo "  - rust-cef-dll-sys"
             [ "${{ steps.check_rust_cef.outputs.needs_update }}" == "true" ] && echo "  - rust-cef"
             [ "${{ steps.check_qt6.outputs.needs_update }}" == "true" ] && echo "  - stremio-qt6"

@@ -12,31 +12,51 @@
 ![Architecture](https://img.shields.io/badge/arch-amd64%20%7C%20arm64-green)
 ![License](https://img.shields.io/github/license/vejeta/stremio-debian)
 
-Modern Debian packaging for the complete **Stremio** media center ecosystem.
+Debian packaging for **Stremio** client and engine variants that aren't (yet, or ever) in Debian's own archive.
 
 **Hosted on GitHub Pages** | **Zero server costs** | **Automatic builds** | **ARM64 support for Raspberry Pi**
 
 ---
 
-## Important: Qt5 End-of-Life Notice
+## Important: Debian now ships its own `stremio` (2026-09-24)
 
-**Qt5 has reached End-of-Life** and is being removed from Debian. The original `stremio` client uses Qt5/QtWebEngine, but QtWebEngine is not available for Qt6, making the Qt5 client unmaintainable going forward.
+Debian unstable accepted `stremio` 1.2.0+ds-1 into **main** &mdash; the GTK4/libadwaita/WebKitGTK6
+rewrite ([ITP #943703](https://bugs.debian.org/943703)), installable directly from the normal
+Debian archive, no third-party repo needed. **If you don't have a specific reason to want one of
+the alternatives below, just `apt install stremio` from Debian and skip this repository.**
 
-### What This Means
+This repo now exists only for what Debian doesn't ship:
 
-| Client | Status | Recommendation |
-|--------|--------|----------------|
-| **stremio-gtk** (GTK4/CEF) | **Active Development** | **Recommended for Debian sid** |
-| **stremio** (Qt6) | Experimental | For KDE/Plasma users who prefer Qt (sid/Ubuntu only) |
-| **stremio** (Qt5) | Legacy - Qt5 EOL | Use on bookworm/trixie while available |
+| Client | Status | Notes |
+|--------|--------|-------|
+| **stremio-cef** (GTK4/CEF, was stremio-gtk) | Active development | For hardware/setups where the CEF renderer works better than WebKitGTK6 (Debian sid only) |
+| **stremio-qt5** (Qt5, was stremio) | Legacy | For users who prefer/need the Qt5 build; renamed to stop colliding with Debian's own `stremio` |
+| **stremio-qt6** | Experimental | Work in progress, not recommended yet |
 
-**stremio-gtk** is the successor client developed by Stremio using GTK4/Adwaita with CEF (Chromium Embedded Framework). It is the future-proof option that will continue to work as Qt5 is phased out.
+Two **empty transitional packages** (`stremio` &rarr; `stremio-qt5`, `stremio-gtk` &rarr;
+`stremio-cef`) ship so existing users of this repo migrate automatically with
+`apt full-upgrade` &mdash; plain `apt upgrade` will *not* do it, since apt won't swap package names
+on its own. See the [FAQ on debian.vejeta.com](https://debian.vejeta.com/#faq) for the exact
+commands.
+
+**Recommended:** pin this repository below Debian's own archive, so Debian wins by default for
+anything that exists in both places (`/etc/apt/preferences.d/debian-vejeta-com.pref`):
+```
+Package: *
+Pin: origin debian.vejeta.com
+Pin-Priority: 100
+```
+
+**stremio-server is deprecated.** Debian's own `stremio-server-installer` (contrib) now covers the
+same job &mdash; downloading the non-redistributable `server.js`. It's unstable-only for now, so we
+keep publishing our `stremio-server` for trixie/bookworm until Debian's version reaches those
+suites too.
 
 ---
 
 ## Quick Installation
 
-### For Debian sid (Recommended: stremio-gtk)
+### For Debian sid (stremio-cef, CEF renderer)
 
 ```bash
 # Add GPG key
@@ -45,12 +65,12 @@ wget -qO - https://debian.vejeta.com/key.gpg | sudo gpg --dearmor -o /usr/share/
 # Add repository
 echo "deb [signed-by=/usr/share/keyrings/stremio-debian.gpg] https://debian.vejeta.com sid main non-free" | sudo tee /etc/apt/sources.list.d/stremio.list
 
-# Install stremio-gtk (modern GTK4/CEF client)
+# Install stremio-cef (GTK4/CEF client)
 sudo apt update
-sudo apt install stremio-gtk stremio-server
+sudo apt install stremio-cef
 ```
 
-### For Debian bookworm/trixie (Legacy Qt5 client)
+### For any suite (stremio-qt5, legacy Qt5 client)
 
 ```bash
 # Add GPG key
@@ -68,21 +88,21 @@ echo "deb [signed-by=/usr/share/keyrings/stremio-debian.gpg] https://debian.veje
 
 # Install Qt5 client
 sudo apt update
-sudo apt install stremio stremio-server
+sudo apt install stremio-qt5
 ```
 
 **Supported Distributions:**
-- Debian sid (unstable) - **stremio-gtk** (recommended) + Qt6 client (experimental)
-- Debian 13 (trixie) - Qt5 client + Qt6 client (experimental)
-- Debian testing - Qt5 client only
-- Debian 12 (bookworm) - Qt5 client only
+- Debian sid (unstable) - **stremio-cef** + stremio-qt5 + Qt6 client (experimental)
+- Debian 13 (trixie) - stremio-qt5 + Qt6 client (experimental)
+- Debian testing - stremio-qt5 only
+- Debian 12 (bookworm) - stremio-qt5 only
 - Ubuntu 25.04 (plucky) - Qt6 client (experimental)
 
 ---
 
 ## Package Components
 
-### stremio-gtk (main) - **Recommended for Debian sid**
+### stremio-cef (main) - Debian sid only
 
 | Property | Value |
 |----------|-------|
@@ -90,20 +110,24 @@ sudo apt install stremio stremio-server
 | **Architecture** | amd64 |
 | **Distribution** | Debian sid only |
 | **Upstream** | [github.com/Stremio/stremio-linux-shell](https://github.com/Stremio/stremio-linux-shell) |
-| **Packaging** | [salsa.debian.org/mendezr/stremio-gtk](https://salsa.debian.org/mendezr/stremio-gtk) |
+| **Packaging** | [salsa.debian.org/mendezr/stremio-cef](https://salsa.debian.org/mendezr/stremio-cef) |
 
-**Why stremio-gtk?**
-- Modern GTK4/Adwaita interface following GNOME HIG
-- Uses CEF (Chromium Embedded Framework) - actively maintained
+Renamed from `stremio-gtk` on 2026-09-24 once Debian's own `stremio` became a GTK4 client too,
+making the old "-gtk" suffix meaningless (the real difference is the renderer: CEF here, WebKitGTK6
+in Debian's own package).
+
+**Why stremio-cef?**
+- GTK4/Adwaita interface following GNOME HIG
+- Uses CEF (Chromium Embedded Framework)
 - Native Wayland support
-- Future-proof: continues to work as Qt5 is removed from Debian
+- Kept for hardware/setups where CEF renders better than WebKitGTK6
 
 **Dependencies** (installed automatically):
 - `libcef<N>` - CEF runtime library
 - `libcef-common` - CEF locales and resources
 - `librust-cef-dev` - Rust CEF bindings
 - `librust-cef-dll-sys-dev` - Rust CEF FFI bindings
-- `stremio-server` - Streaming server
+- `stremio-server-installer` (Recommends; from Debian) or this repo's deprecated `stremio-server`
 
 ### brow6el (main) - Debian sid only
 
@@ -128,12 +152,12 @@ A full-featured terminal web browser built on CEF. Renders web pages as graphics
 | **librust-cef-dll-sys-dev** | Rust FFI bindings to CEF | Apache-2.0 OR MIT |
 | **librust-cef-dev** | Rust high-level bindings to CEF | Apache-2.0 OR MIT |
 
-These are build and runtime dependencies for stremio-gtk. They are built from the [cef-rs](https://github.com/tauri-apps/cef-rs) crates using [debcargo](https://packages.debian.org/debcargo) with Debian-specific patches to link against system CEF from `libcef-dev`.
+These are build and runtime dependencies for stremio-cef. They are built from the [cef-rs](https://github.com/tauri-apps/cef-rs) crates using [debcargo](https://packages.debian.org/debcargo) with Debian-specific patches to link against system CEF from `libcef-dev`.
 
 - **rust-cef-dll-sys**: [ITP #1128612](https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=1128612) | [Salsa](https://salsa.debian.org/mendezr/rust-cef-dll-sys)
 - **rust-cef**: [ITP #1128610](https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=1128610) | [Salsa](https://salsa.debian.org/mendezr/rust-cef)
 
-### stremio (main) - Experimental Qt6 Client
+### stremio-qt6 (main) - Experimental Qt6 Client
 
 | Property | Value |
 |----------|-------|
@@ -144,32 +168,36 @@ These are build and runtime dependencies for stremio-gtk. They are built from th
 | **Upstream** | [github.com/vejeta/stremio-shell (qt6-migration)](https://github.com/vejeta/stremio-shell/tree/qt6-migration) |
 | **Packaging** | [salsa.debian.org/mendezr/stremio-qt6](https://salsa.debian.org/mendezr/stremio-qt6) |
 
-**Note**: This is an experimental Qt6 port intended as a workaround for users who prefer KDE/Plasma or Qt-based desktop environments and want a non-deprecated Qt client. The recommended client for Debian sid remains stremio-gtk. On sid and Ubuntu, the Qt6 version supersedes the Qt5 package due to its higher version number.
+**Note**: This is an experimental Qt6 port intended as a workaround for users who prefer KDE/Plasma or Qt-based desktop environments and want a non-deprecated Qt client. Not recommended yet &mdash; prefer Debian's own `stremio`, or `stremio-cef`/`stremio-qt5` from this repo. On sid and Ubuntu, the Qt6 version supersedes stremio-qt5 due to its higher version number.
 
-### stremio (main) - Legacy Qt5 Client
+### stremio-qt5 (main) - Legacy Qt5 Client
 
 | Property | Value |
 |----------|-------|
 | **License** | GPL-3.0-or-later |
 | **Architecture** | amd64, arm64 |
 | **Distribution** | All (bookworm, trixie, testing, sid) |
-| **Status** | **Legacy** - Qt5 EOL |
+| **Status** | **Legacy** |
 | **Upstream** | [github.com/Stremio/stremio-shell](https://github.com/Stremio/stremio-shell) |
-| **Packaging** | [salsa.debian.org/mendezr/stremio](https://salsa.debian.org/mendezr/stremio) |
+| **Packaging** | [salsa.debian.org/mendezr/stremio-qt5](https://salsa.debian.org/mendezr/stremio-qt5) |
 
-**Note**: The Qt5 client will continue to work on existing distributions but will not receive updates once Qt5 is removed from Debian.
+Renamed from `stremio` on 2026-09-24, since Debian's own `stremio` package now uses that name for
+the WebKitGTK6 rewrite. Kept for users who specifically want or need the Qt5 build.
 
-### stremio-server (non-free)
+### stremio-server (non-free) - **Deprecated**
 
 | Property | Value |
 |----------|-------|
 | **License** | Proprietary |
 | **Architecture** | all (Node.js) |
-| **Distribution** | All |
+| **Distribution** | trixie, bookworm (kept until Debian's replacement reaches those suites) |
 | **Upstream** | [dl.strem.io/server](https://dl.strem.io/server/) |
 | **Packaging** | [salsa.debian.org/mendezr/stremio-server](https://salsa.debian.org/mendezr/stremio-server) |
 
-Required for BitTorrent streaming, HLS transcoding, and casting support.
+Downloads and installs Stremio's streaming server (BitTorrent, HLS transcoding, casting). Debian's
+own [`stremio-server-installer`](https://tracker.debian.org/pkg/stremio-server-installer) (contrib)
+now does the same job the official way; as of this writing it's only in `unstable`, so we keep
+publishing ours for trixie/bookworm in the meantime. Prefer Debian's on sid.
 
 ### CEF Packages (main) - Debian sid only
 
@@ -179,7 +207,7 @@ Required for BitTorrent streaming, HLS transcoding, and casting support.
 | **libcef-dev** | Development headers |
 | **libcef-common** | Locales, PAK files, runtime resources |
 
-CEF packages are required by stremio-gtk and are installed automatically as dependencies. They are built from Debian's [`chromium` packaging (`cef` branch)](https://salsa.debian.org/mendezr/chromium/-/tree/cef), so they track the latest Chromium and inherit its [security fixes](https://security-tracker.debian.org/tracker/source-package/chromium). The current version is shown by the **chromium (cef)** badge at the top of this README.
+CEF packages are required by stremio-cef and brow6el, and are installed automatically as dependencies. They are built from Debian's [`chromium` packaging (`cef` branch)](https://salsa.debian.org/mendezr/chromium/-/tree/cef), so they track the latest Chromium and inherit its [security fixes](https://security-tracker.debian.org/tracker/source-package/chromium). The current version is shown by the **chromium (cef)** badge at the top of this README.
 
 ---
 
@@ -189,8 +217,8 @@ This repository uses **separate releases** for different package groups:
 
 | Release Tag | Packages | Distribution |
 |-------------|----------|--------------|
-| `v*` (e.g., v5.0.0) | stremio (Qt5), stremio-server | All |
-| `gtk-*` (e.g., gtk-1.0.0-beta.13.ds-7) | stremio-gtk, stremio-server, librust-cef-dev, librust-cef-dll-sys-dev | sid only |
+| `v*` (e.g., v5.0.0) | stremio-qt5 (+ `stremio` transitional), stremio-server | All |
+| `stremio-cef-*` (e.g., stremio-cef-1.0.0-beta.13.ds-8) | stremio-cef (+ `stremio-gtk` transitional), stremio-server, librust-cef-dev, librust-cef-dll-sys-dev | sid only |
 | `cef-*` (e.g., cef-151.0.7922.71) | libcef\<N\>, libcef-common, libcef-dev | sid only |
 | `brow6el-*` (e.g., brow6el-0.3.4-1) | brow6el | sid only |
 
@@ -200,9 +228,15 @@ This repository uses **separate releases** for different package groups:
 
 ## Debian Submission Status
 
-### stremio-gtk - **Active ITP**
+### stremio - **Accepted** (not this repo's build)
 
-**ITP**: [Bug #1119815](https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=1119815)
+**ITP**: [Bug #943703](https://bugs.debian.org/943703) &mdash; accepted 2026-09-24 as the
+GTK4/libadwaita/WebKitGTK6 rewrite, version 1.2.0+ds-1. Installed directly from Debian's own
+archive; this repository does not build or publish it.
+
+### stremio-cef - **Active ITP**
+
+**ITP**: [Bug #1119815](https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=1119815) (originally filed for stremio-gtk)
 
 - **Target**: Debian `main` archive
 - **License**: GPL-3.0-only (DFSG-compliant)
@@ -226,15 +260,12 @@ This repository uses **separate releases** for different package groups:
 - **Status**: Packaging complete, seeking sponsorship
 - **Dependencies**: Requires CEF packages
 
-### stremio (Qt5) - **Unlikely to be Sponsored**
+### stremio-qt5 - **Superseded, not seeking sponsorship**
 
-**ITP**: [Bug #943703](https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=943703)
-
-- **Status**: **Qt5 End-of-Life** - sponsorship unlikely
-- **Reason**: Qt5/QtWebEngine is being removed from Debian
-- **Alternative**: stremio-gtk is the path forward
-
-The Qt5 client ITP was filed in 2019, but Qt5 reaching EOL means this package cannot be accepted into Debian's main archive. The packaging work has been redirected to stremio-gtk which uses actively maintained technologies.
+Previously filed as [Bug #943703](https://bugs.debian.org/943703) under the name `stremio`; that
+ITP is now closed, fulfilled by Debian's own WebKitGTK6-based `stremio` rather than this Qt5
+codebase. stremio-qt5 is kept published here for users who want it, but isn't itself headed for the
+Debian archive.
 
 ---
 
@@ -243,13 +274,13 @@ The Qt5 client ITP was filed in 2019, but Qt5 reaching EOL means this package ca
 ```
 ┌─────────────────────────────────────────────────────────┐
 │     Canonical Sources (Salsa Debian GitLab)             │
-│  salsa.debian.org/mendezr/stremio                       │
+│  salsa.debian.org/mendezr/stremio-qt5                   │
 │  salsa.debian.org/mendezr/stremio-qt6                   │
 │  salsa.debian.org/mendezr/stremio-server                │
-│  salsa.debian.org/mendezr/stremio-gtk                   │
+│  salsa.debian.org/mendezr/stremio-cef                   │
 │  salsa.debian.org/mendezr/chromium (cef branch)         │
 │  salsa.debian.org/mendezr/rust-cef-dll-sys              │
-│  salsa.debian.org/mendezr/rust-cef                      │
+│  salsa.debian.org/mendezr/rust-cef                       │
 └────────────────────┬────────────────────────────────────┘
                      │ Auto-Sync
                      ▼
@@ -280,10 +311,10 @@ The Qt5 client ITP was filed in 2019, but Qt5 reaching EOL means this package ca
 
 | Component | License | Distribution | Architecture | Status |
 |-----------|---------|--------------|--------------|--------|
-| stremio-gtk | GPL-3.0-only | sid | amd64 | Active |
+| stremio-cef | GPL-3.0-only | sid | amd64 | Active |
 | stremio-qt6 | GPL-3.0+ | trixie, sid, plucky | amd64, arm64 | Experimental |
-| stremio (Qt5) | GPL-3.0+ | all | amd64, arm64 | Legacy |
-| stremio-server | Proprietary | all | all | Active |
+| stremio-qt5 | GPL-3.0+ | all | amd64, arm64 | Legacy |
+| stremio-server | Proprietary | trixie, bookworm | all | Deprecated |
 | libcef\<N\> | BSD-3-Clause | sid | amd64 | Active |
 | libcef-common | BSD-3-Clause | sid | all | Active |
 | librust-cef-dll-sys-dev | Apache-2.0 OR MIT | sid | amd64 | Active |
@@ -301,8 +332,8 @@ The Qt5 client ITP was filed in 2019, but Qt5 reaching EOL means this package ca
 git clone --recursive https://github.com/vejeta/stremio-debian.git
 cd stremio-debian
 
-# Build stremio-gtk (requires Debian sid + CEF packages)
-cd stremio-gtk
+# Build stremio-cef (requires Debian sid + CEF packages)
+cd stremio-cef
 dpkg-buildpackage -us -uc
 
 # Build Qt6 client (requires Debian sid or Ubuntu noble)
@@ -321,8 +352,8 @@ dpkg-buildpackage -us -uc
 ### Contributing
 
 1. **Packaging Changes**: Submit to Salsa repositories
-   - [stremio-gtk](https://salsa.debian.org/mendezr/stremio-gtk)
-   - [stremio](https://salsa.debian.org/mendezr/stremio)
+   - [stremio-cef](https://salsa.debian.org/mendezr/stremio-cef)
+   - [stremio-qt5](https://salsa.debian.org/mendezr/stremio-qt5)
    - [stremio-qt6](https://salsa.debian.org/mendezr/stremio-qt6)
    - [stremio-server](https://salsa.debian.org/mendezr/stremio-server)
    - [chromium (cef branch)](https://salsa.debian.org/mendezr/chromium/-/tree/cef) — CEF build profile
@@ -352,11 +383,11 @@ dpkg-buildpackage -us -uc
 
 ## Acknowledgments
 
-- **Stremio Team**: For creating Stremio and developing stremio-linux-shell (stremio-gtk)
+- **Stremio Team**: For creating Stremio and developing stremio-linux-shell (stremio-cef) and the official Debian `stremio` package
 - **Debian Community**: For packaging standards and infrastructure
 - **GitHub**: For free hosting, CI/CD, and unlimited bandwidth
 - **CEF Project**: For Chromium Embedded Framework
 
 ---
 
-*Last updated: 2026-04-28*
+*Last updated: 2026-09-24*

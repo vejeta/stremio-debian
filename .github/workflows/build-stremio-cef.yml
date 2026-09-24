@@ -1,10 +1,10 @@
-name: Build stremio-gtk Packages
+name: Build stremio-cef Packages
 
 on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'stremio-gtk version to build (e.g., 1.0.0-beta.12)'
+        description: 'stremio-cef version to build (e.g., 1.0.0~beta.13+ds-8)'
         required: true
         type: string
       force_rebuild:
@@ -32,8 +32,8 @@ jobs:
           SALSA=https://salsa.debian.org/mendezr
           REPO=https://debian.vejeta.com
 
-          # What stremio-gtk (Salsa master) requires
-          CTRL=$(curl -fsSL "$SALSA/stremio-gtk/-/raw/master/debian/control")
+          # What stremio-cef (Salsa master) requires
+          CTRL=$(curl -fsSL "$SALSA/stremio-cef/-/raw/master/debian/control")
           LIBCEF_MAJOR=$(printf '%s\n' "$CTRL" | grep -oE 'libcef[0-9]+' | head -1 | grep -oE '[0-9]+')
           RUST_REQ_MAJOR=$(printf '%s\n' "$CTRL" | grep -oE 'librust-cef-dev \(>= [0-9]+' | grep -oE '[0-9]+' | head -1)
 
@@ -45,17 +45,17 @@ jobs:
           REPO_LIBCEFDEV_MAJOR=$(curl -fsSL "$REPO/dists/sid/main/binary-amd64/Packages" \
             | awk '/^Package: libcef-dev$/{f=1} f&&/^Version:/{print $2; f=0}' | sort -V | tail -1 | grep -oE '^[0-9]+' || true)
 
-          echo "stremio-gtk needs: libcef$LIBCEF_MAJOR, librust-cef-dev (>= $RUST_REQ_MAJOR)"
+          echo "stremio-cef needs: libcef$LIBCEF_MAJOR, librust-cef-dev (>= $RUST_REQ_MAJOR)"
           echo "rust-cef builds: $RUST_CEF_MAJOR | rust-cef-dll-sys builds: $RUST_DLL_MAJOR"
           echo "APT repo libcef-dev: $REPO_LIBCEFDEV_MAJOR"
 
           fail=0
           if [ -n "$RUST_REQ_MAJOR" ]; then
-            [ "${RUST_CEF_MAJOR:-0}" -ge "$RUST_REQ_MAJOR" ] || { echo "::error::rust-cef builds $RUST_CEF_MAJOR but stremio-gtk needs librust-cef-dev (>= $RUST_REQ_MAJOR). Update the rust-cef submodule to >= $RUST_REQ_MAJOR on Salsa."; fail=1; }
-            [ "${RUST_DLL_MAJOR:-0}" -ge "$RUST_REQ_MAJOR" ] || { echo "::error::rust-cef-dll-sys builds $RUST_DLL_MAJOR but stremio-gtk needs >= $RUST_REQ_MAJOR. Update the rust-cef-dll-sys submodule."; fail=1; }
+            [ "${RUST_CEF_MAJOR:-0}" -ge "$RUST_REQ_MAJOR" ] || { echo "::error::rust-cef builds $RUST_CEF_MAJOR but stremio-cef needs librust-cef-dev (>= $RUST_REQ_MAJOR). Update the rust-cef submodule to >= $RUST_REQ_MAJOR on Salsa."; fail=1; }
+            [ "${RUST_DLL_MAJOR:-0}" -ge "$RUST_REQ_MAJOR" ] || { echo "::error::rust-cef-dll-sys builds $RUST_DLL_MAJOR but stremio-cef needs >= $RUST_REQ_MAJOR. Update the rust-cef-dll-sys submodule."; fail=1; }
           fi
           if [ -n "$LIBCEF_MAJOR" ]; then
-            [ "${REPO_LIBCEFDEV_MAJOR:-0}" -ge "$LIBCEF_MAJOR" ] || { echo "::error::APT repo has libcef-dev $REPO_LIBCEFDEV_MAJOR but stremio-gtk needs libcef$LIBCEF_MAJOR. Promote+deploy the CEF $LIBCEF_MAJOR release before building stremio-gtk."; fail=1; }
+            [ "${REPO_LIBCEFDEV_MAJOR:-0}" -ge "$LIBCEF_MAJOR" ] || { echo "::error::APT repo has libcef-dev $REPO_LIBCEFDEV_MAJOR but stremio-cef needs libcef$LIBCEF_MAJOR. Promote+deploy the CEF $LIBCEF_MAJOR release before building stremio-cef."; fail=1; }
           fi
           exit $fail
 
@@ -75,7 +75,7 @@ jobs:
         run: |
           # Salsa is the source of truth; build the latest commit, not the pin
           # (these repos use the 'main' default branch). Keeps rust-cef-dll-sys
-          # in lockstep with stremio-gtk, which also syncs to Salsa at build time.
+          # in lockstep with stremio-cef, which also syncs to Salsa at build time.
           git config --global --add safe.directory '*'
           git -C rust-cef-dll-sys fetch origin --quiet
           git -C rust-cef-dll-sys checkout --quiet origin/main
@@ -275,8 +275,8 @@ jobs:
           path: artifacts/rust-cef-sid-amd64/*.deb
           retention-days: 90
 
-  build-stremio-gtk:
-    name: Build stremio-gtk - sid amd64
+  build-stremio-cef:
+    name: Build stremio-cef - sid amd64
     needs: [build-rust-cef]
     runs-on: ubuntu-latest
     # Only build for sid/amd64 - matches CEF availability
@@ -301,14 +301,14 @@ jobs:
           name: rust-cef-packages-sid-amd64
           path: rust-cef-debs
 
-      - name: Verify stremio-gtk submodule
+      - name: Verify stremio-cef submodule
         run: |
-          if [ ! -d "stremio-gtk/debian" ]; then
-            echo "ERROR: stremio-gtk submodule not properly checked out"
+          if [ ! -d "stremio-cef/debian" ]; then
+            echo "ERROR: stremio-cef submodule not properly checked out"
             exit 1
           fi
-          echo "stremio-gtk submodule verified"
-          ls -la stremio-gtk/
+          echo "stremio-cef submodule verified"
+          ls -la stremio-cef/
 
       - name: Build in sid container
         run: |
@@ -351,10 +351,10 @@ jobs:
               git config --global user.name "$DEBFULLNAME"
               git config --global --add safe.directory "*"
 
-              cd stremio-gtk
+              cd stremio-cef
 
               # Sync to latest Salsa (source of truth)
-              echo "=== Syncing stremio-gtk to latest Salsa ==="
+              echo "=== Syncing stremio-cef to latest Salsa ==="
               git fetch origin
               git checkout origin/master
               echo "Synced to: $(git log -1 --oneline)"
@@ -362,18 +362,22 @@ jobs:
               # Get version from changelog
               VERSION=$(dpkg-parsechangelog -S Version)
               UPSTREAM_VERSION=$(echo "$VERSION" | cut -d- -f1)
-              echo "Building stremio-gtk version: $VERSION (upstream: $UPSTREAM_VERSION)"
+              echo "Building stremio-cef version: $VERSION (upstream: $UPSTREAM_VERSION)"
 
               # Fetch pristine-tar and upstream branches for orig tarball
               echo "=== Fetching pristine-tar and upstream branches ==="
               git fetch origin pristine-tar:pristine-tar upstream:upstream
 
               # Extract vendor/ from pristine-tar tarball
-              # vendor/ is NOT in git - it is only in the +ds orig tarball
+              # vendor/ is NOT in git - it is only in the +ds orig tarball.
+              # gbp derives the orig tarball name from debian/changelog's current
+              # Source: field (stremio-cef, since the 2026-09-24 rename), so the
+              # pristine-tar branch must carry a delta under that name, not the
+              # pre-rename stremio-gtk_* one.
               echo "=== Extracting vendor/ from pristine-tar tarball ==="
               echo "PATH: $PATH"
               which pristine-tar || echo "pristine-tar not in PATH"
-              ORIG_TARBALL="../stremio-gtk_${UPSTREAM_VERSION}.orig.tar.gz"
+              ORIG_TARBALL="../stremio-cef_${UPSTREAM_VERSION}.orig.tar.gz"
               echo "Extracting: $ORIG_TARBALL"
               /usr/bin/pristine-tar checkout "$ORIG_TARBALL"
               tar -xzf "$ORIG_TARBALL" --strip-components=1 --wildcards "*/vendor"
@@ -393,36 +397,36 @@ jobs:
 
       - name: Collect build artifacts
         run: |
-          mkdir -p artifacts/stremio-gtk-sid-amd64
+          mkdir -p artifacts/stremio-cef-sid-amd64
 
-          for deb in stremio-gtk/../*.deb; do
+          for deb in stremio-cef/../*.deb; do
             if [ -f "$deb" ]; then
               filename=$(basename "$deb")
               # Add distro suffix
               newname="${filename%.deb}-sid.deb"
-              mv "$deb" "artifacts/stremio-gtk-sid-amd64/$newname"
+              mv "$deb" "artifacts/stremio-cef-sid-amd64/$newname"
             fi
           done
 
           # Move other artifacts
-          mv stremio-gtk/../*.buildinfo artifacts/stremio-gtk-sid-amd64/ 2>/dev/null || true
-          mv stremio-gtk/../*.changes artifacts/stremio-gtk-sid-amd64/ 2>/dev/null || true
+          mv stremio-cef/../*.buildinfo artifacts/stremio-cef-sid-amd64/ 2>/dev/null || true
+          mv stremio-cef/../*.changes artifacts/stremio-cef-sid-amd64/ 2>/dev/null || true
 
           echo "=== Collected artifacts ==="
-          ls -lah artifacts/stremio-gtk-sid-amd64/
+          ls -lah artifacts/stremio-cef-sid-amd64/
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v7
         with:
-          name: stremio-gtk-packages-sid-amd64
-          path: artifacts/stremio-gtk-sid-amd64/*.deb
+          name: stremio-cef-packages-sid-amd64
+          path: artifacts/stremio-cef-sid-amd64/*.deb
           retention-days: 90
 
       - name: Upload all artifacts
         uses: actions/upload-artifact@v7
         with:
-          name: stremio-gtk-all-sid-amd64
-          path: artifacts/stremio-gtk-sid-amd64/*
+          name: stremio-cef-all-sid-amd64
+          path: artifacts/stremio-cef-sid-amd64/*
           retention-days: 90
 
   build-stremio-server:
@@ -500,9 +504,9 @@ jobs:
           path: artifacts/stremio-server-sid/*.deb
           retention-days: 90
 
-  create-gtk-release:
-    name: Create stremio-gtk Release
-    needs: [build-rust-cef-dll-sys, build-rust-cef, build-stremio-gtk, build-stremio-server]
+  create-stremio-cef-release:
+    name: Create stremio-cef Release
+    needs: [build-rust-cef-dll-sys, build-rust-cef, build-stremio-cef, build-stremio-server]
     runs-on: ubuntu-latest
 
     steps:
@@ -516,23 +520,25 @@ jobs:
 
       - name: Create release notes
         run: |
-          GTK_VERSION="${{ github.event.inputs.version }}"
+          STREMIO_CEF_VERSION="${{ github.event.inputs.version }}"
           # Sanitize version for GitHub tag (~ and + are not allowed)
-          # 1.0.0~beta.12+ds-1 -> 1.0.0-beta.12.ds-1
-          GTK_TAG_VERSION=$(echo "$GTK_VERSION" | sed 's/~/-/g; s/+/./g')
-          echo "GTK_TAG_VERSION=$GTK_TAG_VERSION" >> $GITHUB_ENV
-          echo "Original version: $GTK_VERSION"
-          echo "Tag version: $GTK_TAG_VERSION"
+          # 1.0.0~beta.13+ds-8 -> 1.0.0-beta.13.ds-8
+          STREMIO_CEF_TAG_VERSION=$(echo "$STREMIO_CEF_VERSION" | sed 's/~/-/g; s/+/./g')
+          echo "STREMIO_CEF_TAG_VERSION=$STREMIO_CEF_TAG_VERSION" >> $GITHUB_ENV
+          echo "Original version: $STREMIO_CEF_VERSION"
+          echo "Tag version: $STREMIO_CEF_TAG_VERSION"
           BUILD_DATE="$(date -u +"%Y-%m-%d %H:%M UTC")"
           WORKFLOW_ID="${GITHUB_RUN_ID}"
 
           cat > RELEASE_NOTES.md << 'EOF'
-          # stremio-gtk VERSION_PLACEHOLDER
+          # stremio-cef VERSION_PLACEHOLDER
 
           ## Packages
 
-          - **stremio-gtk** - GTK4/Adwaita-based Stremio client with CEF web engine
-          - **stremio-server** - Stremio streaming server (required)
+          - **stremio-cef** - CEF-based Stremio client (GTK4/Adwaita UI), formerly named stremio-gtk
+          - **stremio-gtk** - empty transitional package pulling in stremio-cef, for upgraders
+          - **stremio-server** - Stremio streaming server (deprecated; kept for trixie/bookworm
+            until `stremio-server-installer` reaches those suites, see the landing page)
           - **librust-cef-dll-sys-dev** - Rust FFI bindings to CEF (build dependency)
           - **librust-cef-dev** - Rust bindings to CEF (build dependency)
 
@@ -544,21 +550,23 @@ jobs:
           wget -qO - https://debian.vejeta.com/key.gpg | sudo gpg --dearmor -o /usr/share/keyrings/stremio-debian.gpg
           echo "deb [signed-by=/usr/share/keyrings/stremio-debian.gpg] https://debian.vejeta.com sid main non-free" | sudo tee /etc/apt/sources.list.d/stremio.list
           sudo apt update
-          sudo apt install stremio-gtk stremio-server
+          sudo apt install stremio-cef
           ```
 
           ## Dependencies
 
-          stremio-gtk requires CEF packages (installed automatically via APT dependencies):
+          stremio-cef requires CEF packages (installed automatically via APT dependencies):
           - libcef (runtime library)
           - libcef-common (shared resources)
 
-          ## Why stremio-gtk?
+          It also `Recommends: stremio-server-installer` for the streaming server component.
 
-          - **Qt5 EOL**: The original stremio client uses Qt5/QtWebEngine, but Qt5 has reached End-of-Life
-          - **Modern UI**: GTK4/Adwaita interface following GNOME HIG
-          - **Wayland Native**: Full Wayland support
-          - **Active Development**: Uses CEF (Chromium Embedded Framework) which is actively maintained
+          ## Why stremio-cef?
+
+          Debian now ships its own `stremio` package (the GTK4/libadwaita/WebKitGTK6 rewrite,
+          ITP #943703, accepted 2026-09-24), which is also GTK4-based - so the old "-gtk" suffix
+          no longer distinguished anything. This build (formerly stremio-gtk) is kept for
+          hardware and setups where the CEF renderer still works better than WebKitGTK6.
 
           ## Build Information
 
@@ -570,22 +578,22 @@ jobs:
 
           ## Note
 
-          stremio-gtk is only available for Debian sid due to CEF dependencies (clang-19 requirement).
+          stremio-cef is only available for Debian sid due to CEF dependencies (clang-19 requirement).
 
           ## Source Code
 
-          - [stremio-gtk on Salsa](https://salsa.debian.org/mendezr/stremio-gtk)
+          - [stremio-cef on Salsa](https://salsa.debian.org/mendezr/stremio-cef)
           - [rust-cef on Salsa](https://salsa.debian.org/mendezr/rust-cef)
           - [rust-cef-dll-sys on Salsa](https://salsa.debian.org/mendezr/rust-cef-dll-sys)
 
           ## License
 
-          stremio-gtk is licensed under GPL-3.0-only and is distributed in the `main` component.
+          stremio-cef is licensed under GPL-3.0-only and is distributed in the `main` component.
           Rust CEF bindings are licensed under MIT/Apache-2.0 and are distributed in the `main` component.
           EOF
 
           # Replace placeholders
-          sed -i "s/VERSION_PLACEHOLDER/$GTK_VERSION/g" RELEASE_NOTES.md
+          sed -i "s/VERSION_PLACEHOLDER/$STREMIO_CEF_VERSION/g" RELEASE_NOTES.md
           sed -i "s/DATE_PLACEHOLDER/$BUILD_DATE/g" RELEASE_NOTES.md
           sed -i "s/WORKFLOW_PLACEHOLDER/$WORKFLOW_ID/g" RELEASE_NOTES.md
 
@@ -593,7 +601,7 @@ jobs:
 
       - name: Delete existing release assets if rebuilding
         run: |
-          TAG="gtk-${{ env.GTK_TAG_VERSION }}"
+          TAG="stremio-cef-${{ env.STREMIO_CEF_TAG_VERSION }}"
           REPO="${{ github.repository }}"
           # Delete all assets by ID via API (avoids filename encoding issues)
           RELEASE_ID=$(gh api "repos/$REPO/releases/tags/$TAG" --jq '.id' 2>/dev/null) || true
@@ -612,15 +620,15 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v3
         with:
-          tag_name: gtk-${{ env.GTK_TAG_VERSION }}
-          name: stremio-gtk ${{ github.event.inputs.version }}
+          tag_name: stremio-cef-${{ env.STREMIO_CEF_TAG_VERSION }}
+          name: stremio-cef ${{ github.event.inputs.version }}
           body_path: RELEASE_NOTES.md
           draft: false
           prerelease: false
           files: |
             release-artifacts/rust-cef-dll-sys-packages-*/*.deb
             release-artifacts/rust-cef-packages-*/*.deb
-            release-artifacts/stremio-gtk-packages-*/*.deb
+            release-artifacts/stremio-cef-packages-*/*.deb
             release-artifacts/stremio-server-packages-*/*.deb
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -629,5 +637,5 @@ jobs:
         uses: peter-evans/repository-dispatch@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          event-type: gtk-packages-updated
+          event-type: stremio-cef-packages-updated
           client-payload: '{"version": "${{ github.event.inputs.version }}"}'

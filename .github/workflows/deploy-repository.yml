@@ -2,7 +2,7 @@ name: Deploy APT Repository to GitHub Pages
 
 on:
   repository_dispatch:
-    types: [packages-updated, cef-packages-updated, gtk-packages-updated, qt6-packages-updated, brow6el-packages-updated]
+    types: [packages-updated, cef-packages-updated, stremio-cef-packages-updated, qt6-packages-updated, brow6el-packages-updated]
   workflow_dispatch:
     inputs:
       force_rebuild:
@@ -49,7 +49,7 @@ jobs:
           mkdir -p packages/{testing,trixie,bookworm,sid,noble,plucky}/{main,non-free}
 
           # Download from latest v* release (stremio-qt5 and stremio-server)
-          # Note: We specifically look for v* tags, not "Latest" which could be gtk-* or cef-*
+          # Note: We specifically look for v* tags, not "Latest" which could be stremio-cef-* or cef-*
           LATEST_TAG=$(gh release list --limit 20 --json tagName -q '.[].tagName' | grep "^v" | head -1)
 
           if [ -n "$LATEST_TAG" ]; then
@@ -81,7 +81,8 @@ jobs:
 
                 # Determine component (main or non-free)
                 # non-free: stremio-server only
-                # main: stremio, stremio-gtk, libcef*, libcef-common
+                # main: stremio-qt5 (+ its transitional stremio), stremio-cef (+ its
+                # transitional stremio-gtk), libcef*, libcef-common
                 if [[ "$filename" =~ ^stremio-server ]]; then
                   component="non-free"
                 else
@@ -165,23 +166,23 @@ jobs:
             echo "No CEF releases found (this is OK if CEF hasn't been built yet)"
           fi
 
-      - name: Download stremio-gtk packages from separate releases
+      - name: Download stremio-cef packages from separate releases
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          # Find latest stremio-gtk release (tag format: gtk-X.X.X)
-          GTK_TAG=$(gh release list --limit 20 --json tagName -q '.[].tagName' | grep "^gtk-" | head -1)
+          # Find latest stremio-cef release (tag format: stremio-cef-X.X.X)
+          STREMIO_CEF_TAG=$(gh release list --limit 20 --json tagName -q '.[].tagName' | grep "^stremio-cef-" | head -1)
 
-          if [ -n "$GTK_TAG" ]; then
-            echo "Downloading stremio-gtk packages from release: $GTK_TAG"
-            mkdir -p temp-gtk-downloads
-            gh release download "$GTK_TAG" --pattern "*.deb" --dir temp-gtk-downloads/ || true
+          if [ -n "$STREMIO_CEF_TAG" ]; then
+            echo "Downloading stremio-cef packages from release: $STREMIO_CEF_TAG"
+            mkdir -p temp-stremio-cef-downloads
+            gh release download "$STREMIO_CEF_TAG" --pattern "*.deb" --dir temp-stremio-cef-downloads/ || true
 
-            # Sort gtk release packages by component
-            for deb in temp-gtk-downloads/*.deb; do
+            # Sort stremio-cef release packages by component
+            for deb in temp-stremio-cef-downloads/*.deb; do
               if [ -f "$deb" ]; then
                 filename=$(basename "$deb")
-                echo "Processing stremio-gtk release package: $filename"
+                echo "Processing stremio-cef release package: $filename"
 
                 # Remove -sid suffix if present to get clean filename
                 if [[ "$filename" == *-sid.deb ]]; then
@@ -191,7 +192,7 @@ jobs:
                 fi
 
                 # stremio-server is proprietary -> non-free
-                # Everything else (stremio-gtk, librust-cef-*) -> main
+                # Everything else (stremio-cef, the stremio-gtk transitional, librust-cef-*) -> main
                 if [[ "$filename" =~ ^stremio-server ]]; then
                   component="non-free"
                 else
@@ -203,13 +204,13 @@ jobs:
               fi
             done
 
-            echo "=== stremio-gtk release packages sorted ==="
+            echo "=== stremio-cef release packages sorted ==="
             echo "main:"
             ls -lh packages/sid/main/ 2>/dev/null || echo "  (empty)"
             echo "non-free:"
             ls -lh packages/sid/non-free/ 2>/dev/null || echo "  (empty)"
           else
-            echo "No stremio-gtk releases found (this is OK if stremio-gtk hasn't been built yet)"
+            echo "No stremio-cef releases found (this is OK if stremio-cef hasn't been built yet)"
           fi
 
       - name: Download stremio-qt6 packages from separate releases
@@ -494,11 +495,24 @@ jobs:
               <p>Unofficial Debian packages built from source, following Debian packaging standards. Includes pre-built <strong>libcef</strong> (Chromium Embedded Framework) packages tracking latest Chromium releases &mdash; the only Debian-native CEF available (<a href="https://bugs.debian.org/915400">ITP #915400</a>, open since 2017). Applications can link against system CEF instead of bundling their own copy.</p>
 
               <div class="info">
+                  <strong>Debian now ships its own <code>stremio</code> (2026-09-24):</strong> the official package is the GTK4/libadwaita/WebKitGTK6 rewrite (<a href="https://bugs.debian.org/943703">ITP #943703</a>), straight from Debian&rsquo;s archive &mdash; no third-party repo needed for it. This repository now exists only for what Debian <strong>doesn&rsquo;t</strong> ship: the legacy Qt5 client (renamed <code>stremio-qt5</code>), the CEF-based client (renamed <code>stremio-cef</code>, for hardware/setups where CEF renders better than WebKitGTK6), the experimental Qt6 client, <code>brow6el</code>, and the CEF/rust-cef build chain those two depend on. If you don&rsquo;t have a specific reason to want one of those, just install Debian&rsquo;s own <code>stremio</code> and skip this repo entirely.
+              </div>
+
+              <div class="warning">
+                  <strong>Pin this repo below Debian&rsquo;s own archive.</strong> Where a package exists in both (currently just the transitional stub packages), you want Debian&rsquo;s copy to win by default. Add to <code>/etc/apt/preferences.d/debian-vejeta-com.pref</code>:
+                  <pre>
+              Package: *
+              Pin: origin debian.vejeta.com
+              Pin-Priority: 100</pre>
+                  Priority 100 means &ldquo;installable, but never preferred over a version already available from your normal Debian sources.&rdquo; You still get <code>stremio-qt5</code>, <code>stremio-cef</code>, and the CEF packages from here on request &mdash; you just won&rsquo;t get this repo&rsquo;s copy of anything Debian itself now provides.
+              </div>
+
+              <div class="info">
                   <strong>Up to date:</strong> <code>libcef</code> is built from Debian's <a href="https://salsa.debian.org/mendezr/chromium/-/tree/cef">chromium packaging (cef branch)</a> &mdash; currently <strong>Chromium __CHROMIUM_VERSION__</strong> (<code>__CEF_SONAME__</code>), inheriting upstream Chromium and Debian <a href="https://security-tracker.debian.org/tracker/source-package/chromium">security fixes</a>.
               </div>
 
               <div class="info">
-                  <strong>Third-party repository:</strong> These packages are not yet part of the official Debian archive. They have been submitted for review via ITPs and are pending sponsorship. See <a href="#source-code">Source Code &amp; ITPs</a> below.
+                  <strong>Third-party repository:</strong> These packages are not yet part of the official Debian archive (aside from <code>stremio</code> itself, now Debian's own). They have been submitted for review via ITPs and are pending sponsorship. See <a href="#source-code">Source Code &amp; ITPs</a> below.
               </div>
 
               <h2>Quick Installation</h2>
@@ -530,7 +544,7 @@ jobs:
               # Ubuntu 25.04 (plucky) - experimental Qt6 client only (no Qt5)
               echo "deb [signed-by=/etc/apt/keyrings/stremio-debian.gpg] https://debian.vejeta.com plucky main non-free" | sudo tee /etc/apt/sources.list.d/vejeta.list</pre>
 
-              <p><strong>Ubuntu&nbsp;24.04&nbsp;(Noble) and KDE&nbsp;Neon users:</strong> use the <code>noble</code> line above &mdash; it provides the working Qt5 <code>stremio</code> client. The <code>plucky</code> suite currently ships only the experimental Qt6 client.</p>
+              <p><strong>Ubuntu&nbsp;24.04&nbsp;(Noble) and KDE&nbsp;Neon users:</strong> use the <code>noble</code> line above &mdash; it provides the working Qt5 <code>stremio-qt5</code> client. The <code>plucky</code> suite currently ships only the experimental Qt6 client.</p>
 
               <h3>Step 3: Install</h3>
               <pre>
@@ -539,26 +553,35 @@ jobs:
 
               <h3>Which package should I install?</h3>
 
-              <p>For a working desktop client we recommend one of the following. Both pair with <code>stremio-server</code> (installed automatically as a dependency):</p>
+              <p>Most people should just install Debian&rsquo;s own <code>stremio</code> (already in the archive, no need to add this repo). Come here only if you specifically want one of these alternatives:</p>
               <pre>
-              # Recommended: Qt5 client
-              sudo apt install stremio stremio-server
+              # Legacy Qt5 client (was "stremio" in this repo before Debian's own package existed)
+              sudo apt install stremio-qt5
 
-              # Alternative: GTK4/CEF client (Debian sid only)
-              sudo apt install stremio-gtk stremio-server</pre>
+              # CEF-based client, for hardware/setups where CEF renders better than
+              # WebKitGTK6 (Debian sid only; was "stremio-gtk")
+              sudo apt install stremio-cef</pre>
+
+              <p>Both recommend <code>stremio-server-installer</code> (from Debian, downloads the streaming server) rather than requiring it outright. See <a href="#stremio-server-deprecated">stremio-server is deprecated</a> below if you're on trixie/bookworm, where that package isn't available yet.</p>
 
               <div class="warning">
-                  <strong>&#9888; Do not install <code>stremio-qt6</code> yet.</strong> The Qt6 client is <span class="experimental">experimental and a work in progress</span> &mdash; it is published for testing only and is not expected to work on most systems (including Ubuntu Noble / Plucky and KDE Neon). If you want a working client, install <code>stremio</code> (Qt5) or <code>stremio-gtk</code> (CEF) as shown above.
+                  <strong>&#9888; Do not install <code>stremio-qt6</code> yet.</strong> The Qt6 client is <span class="experimental">experimental and a work in progress</span> &mdash; it is published for testing only and is not expected to work on most systems (including Ubuntu Noble / Plucky and KDE Neon). If you want a working client, install Debian's own <code>stremio</code>, or <code>stremio-qt5</code> / <code>stremio-cef</code> from this repo, as shown above.
+              </div>
+
+              <div class="info" id="stremio-server-deprecated">
+                  <strong>stremio-server is deprecated.</strong> Debian's own streaming-server component is now <code>stremio-server-installer</code> (contrib), which downloads the non-redistributable <code>server.js</code> in its postinst &mdash; the same thing this repo's <code>stremio-server</code> has always done, just packaged the official way. As of this deploy, <code>stremio-server-installer</code> is only in <strong>unstable</strong>. We're keeping <code>stremio-server</code> published here for <strong>trixie and bookworm</strong> users until Debian's version reaches those suites; on <strong>sid</strong>, prefer <code>stremio-server-installer</code> from Debian directly. We'll retire this repo's <code>stremio-server</code> once the Debian one is available everywhere we publish.
               </div>
 
               <h2>Packages</h2>
 
               <table>
                   <tr><th>Package</th><th>Description</th><th>Component</th><th>Distributions</th><th>Arch</th></tr>
-                  <tr><td><strong>stremio-gtk</strong></td><td>Stremio media center (GTK4/CEF)</td><td>main</td><td>sid</td><td>amd64</td></tr>
+                  <tr><td><strong>stremio-cef</strong></td><td>Stremio media center (CEF renderer, was stremio-gtk)</td><td>main</td><td>sid</td><td>amd64</td></tr>
+                  <tr><td><strong>stremio-gtk</strong></td><td>Empty transitional package &rarr; stremio-cef</td><td>main</td><td>sid</td><td>all</td></tr>
                   <tr><td><strong>stremio-qt6</strong></td><td>Stremio media center (Qt6) &mdash; <span class="experimental">EXPERIMENTAL, work in progress, not recommended</span></td><td>main</td><td>trixie, sid, plucky</td><td>amd64, arm64</td></tr>
-                  <tr><td><strong>stremio</strong></td><td>Stremio media center (Qt5, legacy)</td><td>main</td><td>bookworm, trixie, testing, sid, noble</td><td>amd64, arm64</td></tr>
-                  <tr><td><strong>stremio-server</strong></td><td>Stremio streaming server</td><td>non-free</td><td>all</td><td>all</td></tr>
+                  <tr><td><strong>stremio-qt5</strong></td><td>Stremio media center (Qt5, legacy, was stremio)</td><td>main</td><td>bookworm, trixie, testing, sid, noble</td><td>amd64, arm64</td></tr>
+                  <tr><td><strong>stremio</strong></td><td>Empty transitional package &rarr; stremio-qt5 (shadows Debian's own package of the same name until removed &mdash; see pinning above)</td><td>main</td><td>bookworm, trixie, testing, sid, noble</td><td>all</td></tr>
+                  <tr><td><strong>stremio-server</strong></td><td>Stremio streaming server &mdash; <span class="experimental">deprecated, see above</span></td><td>non-free</td><td>all</td><td>all</td></tr>
                   <tr><td><strong>brow6el</strong></td><td>Terminal web browser (CEF/Sixel)</td><td>main</td><td>sid</td><td>amd64</td></tr>
                   <tr><td><strong>__CEF_SONAME__</strong></td><td>Chromium Embedded Framework (Chromium __CHROMIUM_VERSION__)</td><td>main</td><td>sid</td><td>amd64</td></tr>
                   <tr><td><strong>libcef-dev</strong></td><td>CEF development headers</td><td>main</td><td>sid</td><td>amd64</td></tr>
@@ -588,10 +611,11 @@ jobs:
               <p>Packaging: <a href="https://salsa.debian.org/mendezr">Salsa Debian GitLab</a> &bull; Build system: <a href="https://github.com/vejeta/stremio-debian">github.com/vejeta/stremio-debian</a></p>
 
               <ul>
-                  <li><a href="https://salsa.debian.org/mendezr/stremio-gtk">stremio-gtk</a> (GPL-3.0) &mdash; <a href="https://bugs.debian.org/1119815">ITP #1119815</a></li>
+                  <li><a href="https://tracker.debian.org/pkg/stremio">stremio</a> (GPL-3.0) &mdash; Debian's own package, the WebKitGTK6 rewrite, <a href="https://bugs.debian.org/943703">ITP #943703</a>, accepted 2026-09-24. Not built by this repo; installed from Debian directly.</li>
+                  <li><a href="https://salsa.debian.org/mendezr/stremio-cef">stremio-cef</a> (GPL-3.0) &mdash; formerly stremio-gtk, <a href="https://bugs.debian.org/1119815">ITP #1119815</a></li>
                   <li><a href="https://salsa.debian.org/mendezr/stremio-qt6">stremio-qt6</a> (GPL-3.0) &mdash; <span class="experimental">experimental</span></li>
-                  <li><a href="https://salsa.debian.org/mendezr/stremio-qt5">stremio</a> (GPL-3.0) &mdash; <a href="https://bugs.debian.org/943703">ITP #943703</a></li>
-                  <li><a href="https://salsa.debian.org/mendezr/stremio-server">stremio-server</a> (Proprietary)</li>
+                  <li><a href="https://salsa.debian.org/mendezr/stremio-qt5">stremio-qt5</a> (GPL-3.0) &mdash; formerly stremio, kept as the legacy Qt5 build now that Debian's own <code>stremio</code> is the WebKitGTK6 rewrite</li>
+                  <li><a href="https://salsa.debian.org/mendezr/stremio-server">stremio-server</a> (Proprietary) &mdash; <span class="experimental">deprecated</span>, see above</li>
                   <li><a href="https://salsa.debian.org/mendezr/brow6el">brow6el</a> (MIT) &mdash; <a href="https://bugs.debian.org/1135705">ITP #1135705</a></li>
                   <li><a href="https://salsa.debian.org/mendezr/chromium/-/tree/cef">chromium CEF build profile</a> (BSD-3-Clause) &mdash; <a href="https://bugs.debian.org/915400">ITP #915400</a></li>
                   <li><a href="https://salsa.debian.org/mendezr/rust-cef">rust-cef</a> / <a href="https://salsa.debian.org/mendezr/rust-cef-dll-sys">rust-cef-dll-sys</a> (Apache-2.0 OR MIT)</li>
@@ -600,10 +624,10 @@ jobs:
               <h2 id="faq">FAQ &amp; Troubleshooting</h2>
 
               <h3>I get <code>held broken packages</code> or <code>Depends: qtdeclarative-abi-5-15-13</code> on Ubuntu or KDE&nbsp;Neon</h3>
-              <p>This is fixed in the current packages. The Qt5 <code>stremio</code> package no longer pins an exact Qt&nbsp;5.15 micro&#8209;version on Ubuntu and its derivatives, so it installs on Ubuntu&nbsp;24.04 <em>and</em> on KDE&nbsp;Neon (which rebuilds Qt&nbsp;5.15 at a different point release). Refresh your package lists and retry:</p>
+              <p>This is fixed in the current packages. The Qt5 <code>stremio-qt5</code> package no longer pins an exact Qt&nbsp;5.15 micro&#8209;version on Ubuntu and its derivatives, so it installs on Ubuntu&nbsp;24.04 <em>and</em> on KDE&nbsp;Neon (which rebuilds Qt&nbsp;5.15 at a different point release). Refresh your package lists and retry:</p>
               <pre>
               sudo apt update
-              sudo apt install stremio stremio-server</pre>
+              sudo apt install stremio-qt5</pre>
               <p>If it persists, make sure your source line uses the <code>noble</code> suite (<strong>not</strong> <code>plucky</code>) and that you ran <code>apt update</code> after adding it.</p>
 
               <h3><code>qml-module-qtwebengine</code>, <code>libmpv2</code> or similar are &ldquo;not installable&rdquo; on Ubuntu</h3>
@@ -613,7 +637,7 @@ jobs:
               sudo apt update</pre>
 
               <h3><code>libmpvqt1 (&gt;= 1.0.0) but it is not installable</code> (the <code>plucky</code> line)</h3>
-              <p>The <code>plucky</code> suite ships only <code>stremio-qt6</code>, the <span class="experimental">experimental</span> Qt6 client, which needs libraries not yet packaged in Ubuntu. For a working client on <em>any</em> Ubuntu or KDE&nbsp;Neon release, use the <code>noble</code> line and install <code>stremio</code> (Qt5) &mdash; see Step&nbsp;2 above.</p>
+              <p>The <code>plucky</code> suite ships only <code>stremio-qt6</code>, the <span class="experimental">experimental</span> Qt6 client, which needs libraries not yet packaged in Ubuntu. For a working client on <em>any</em> Ubuntu or KDE&nbsp;Neon release, use the <code>noble</code> line and install <code>stremio-qt5</code> &mdash; see Step&nbsp;2 above.</p>
 
               <h3>Which repository line do I use on Ubuntu / KDE&nbsp;Neon?</h3>
               <p>Always the <code>noble</code> line, regardless of your Ubuntu version (24.04, 24.10, 25.04&hellip;) or KDE&nbsp;Neon edition. It provides the working Qt5 client built against the Ubuntu&nbsp;LTS Qt stack. The <code>plucky</code> line is for testing the experimental Qt6 client only.</p>
@@ -625,17 +649,17 @@ jobs:
               <p>Use the suite of the <em>base</em> your distribution is built on, not its own version number. For example Linux&nbsp;Mint&nbsp;22.x and most current Ubuntu&#8209;based spins (including KDE&nbsp;Neon) map to <code>noble</code>; LMDE and Debian&#8209;based spins use the matching Debian suite (<code>bookworm</code>, <code>trixie</code>&hellip;). If unsure, <code>cat /etc/os-release</code> and look at <code>UBUNTU_CODENAME</code> / <code>VERSION_CODENAME</code>.</p>
 
               <h3>Black screen, crash, or <code>EGL_BAD_CONTEXT</code> on launch (often NVIDIA)</h3>
-              <p>The Qt5 <code>stremio</code> client renders through QtWebEngine&rsquo;s GPU layer, which can clash with some drivers (NVIDIA in particular). This is a <span class="experimental">known upstream/driver limitation</span>, not a packaging bug. Workarounds to try, in order:</p>
+              <p>The Qt5 <code>stremio-qt5</code> client renders through QtWebEngine&rsquo;s GPU layer, which can clash with some drivers (NVIDIA in particular). This is a <span class="experimental">known upstream/driver limitation</span>, not a packaging bug. Workarounds to try, in order:</p>
               <pre>
               # 1. Disable the GPU in the embedded Chromium
-              QTWEBENGINE_CHROMIUM_FLAGS="--disable-gpu" stremio
+              QTWEBENGINE_CHROMIUM_FLAGS="--disable-gpu" stremio-qt5
 
               # 2. Force software OpenGL
-              LIBGL_ALWAYS_SOFTWARE=1 stremio</pre>
-              <p>If neither helps, try the <code>stremio-gtk</code> (CEF) client instead, which uses a different rendering stack.</p>
+              LIBGL_ALWAYS_SOFTWARE=1 stremio-qt5</pre>
+              <p>If neither helps, try the <code>stremio-cef</code> client instead, which uses a different rendering stack &mdash; or Debian's own <code>stremio</code> (WebKitGTK6).</p>
 
               <h3>Can I run it headless (Raspberry&nbsp;Pi, no desktop)?</h3>
-              <p>No. <code>stremio</code> is a graphical application and needs an active display session (an X/Wayland server with a valid <code>$DISPLAY</code>). It will not start from a bare console or over SSH without a desktop. On a Raspberry&nbsp;Pi you need a running desktop session; there is no TV&#8209;remote/CLI&#8209;only mode like Kodi.</p>
+              <p>No. <code>stremio-qt5</code>, <code>stremio-cef</code>, and Debian's own <code>stremio</code> are all graphical applications and need an active display session (an X/Wayland server with a valid <code>$DISPLAY</code>). None will start from a bare console or over SSH without a desktop. On a Raspberry&nbsp;Pi you need a running desktop session; there is no TV&#8209;remote/CLI&#8209;only mode like Kodi.</p>
 
               <h3>apt warns &ldquo;changed its <code>non-free</code> component value to <code>non-free non-free-firmware</code>&rdquo;</h3>
               <p>Harmless and cosmetic. It comes from Debian splitting <code>non-free-firmware</code> out of <code>non-free</code>; it does not affect installation. You can ignore it (or run <code>apt update</code> once to acknowledge it).</p>

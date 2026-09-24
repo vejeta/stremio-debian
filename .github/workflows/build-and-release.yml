@@ -25,7 +25,7 @@ env:
 
 jobs:
   build-stremio-qt5:
-    name: Build stremio (main/free) - ${{ matrix.distro }}-${{ matrix.arch }}
+    name: Build stremio-qt5 (main/free) - ${{ matrix.distro }}-${{ matrix.arch }}
     runs-on: ubuntu-latest
     strategy:
       matrix:
