@@ -282,16 +282,19 @@ jobs:
     # Only build for sid/amd64 - matches CEF availability
     # CEF packages must be available in the APT repository first
     #
-    # Uses sbuild (--chroot-mode=unshare, no persistent chroot needed on this
-    # ephemeral GitHub-hosted runner) instead of a hand-maintained apt-get
-    # install list + `dpkg -i ... || apt-get install -f -y`. That older
-    # approach hit a reproducible failure on 2026-09-24/25 where pristine-tar
-    # (and its perl dependency) installed via dpkg without error but could
-    # not be exec'd afterwards; it did not reproduce in a plain `debian:sid`
-    # container with the same package list, so it looks specific to that
-    # dpkg -i / apt-get -f dance rather than the packages themselves. sbuild
-    # resolves debian/control's Build-Depends via plain `apt-get build-dep`,
-    # which never puts dpkg through that unconfigured-then-fixed sequence.
+    # Uses sbuild (--chroot-mode=unshare) instead of a hand-maintained
+    # apt-get install list + `dpkg -i ... || apt-get install -f -y`. Since
+    # +ds-8, patch 35 builds against ~330 *system* Rust crates
+    # (/usr/share/cargo/registry), which only a real `apt-get build-dep`
+    # against debian/control installs -- the old ~20-package list could never
+    # have built it. (The old approach also hit an unexplained failure where
+    # pristine-tar installed but could not be exec'd afterwards.)
+    #
+    # When this job fails with `failed to read
+    # /usr/share/cargo/registry/<crate>-<ver>/Cargo.toml`, sid has moved one
+    # of patch 35's pinned crates on; cargo only reports the first one, so
+    # compare all pins against `rmadison -s unstable -a amd64,all` before
+    # fixing it on Salsa.
     # Freshly-built rust-cef-dll-sys/rust-cef debs are handed to sbuild with
     # --extra-package=<dir>, which copies them into the chroot as a local
     # repository, so apt resolves them like any other archive package
