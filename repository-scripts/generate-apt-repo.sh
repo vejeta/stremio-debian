@@ -42,6 +42,20 @@ else
     exit 1
 fi
 
+# dpkg-scanpackages adds Architecture: all packages to every architecture's
+# index. These ones only make sense where this repo builds stremio-cef and
+# libcef, which is amd64 only: on arm64 the stremio-gtk transitional would be
+# listed but never installable (its dependency stremio-cef is not built there).
+AMD64_ONLY_ALL_PACKAGES="stremio-gtk libcef-common"
+if [ "$ARCH" != "amd64" ]; then
+    awk -v drop="$AMD64_ONLY_ALL_PACKAGES" '
+        BEGIN { RS = ""; ORS = "\n\n"; n = split(drop, d, " "); for (i = 1; i <= n; i++) skip[d[i]] = 1 }
+        { if (match($0, /(^|\n)Package: [^\n]+/)) { p = substr($0, RSTART, RLENGTH); sub(/.*Package: /, "", p) } else p = ""
+          if (!(p in skip)) print }
+    ' "dists/$SUITE/$COMPONENT/binary-$ARCH/Packages" > "dists/$SUITE/$COMPONENT/binary-$ARCH/Packages.tmp"
+    mv "dists/$SUITE/$COMPONENT/binary-$ARCH/Packages.tmp" "dists/$SUITE/$COMPONENT/binary-$ARCH/Packages"
+fi
+
 # Compress Packages file
 gzip -9c "dists/$SUITE/$COMPONENT/binary-$ARCH/Packages" > "dists/$SUITE/$COMPONENT/binary-$ARCH/Packages.gz"
 bzip2 -9c "dists/$SUITE/$COMPONENT/binary-$ARCH/Packages" > "dists/$SUITE/$COMPONENT/binary-$ARCH/Packages.bz2"

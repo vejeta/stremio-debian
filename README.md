@@ -18,77 +18,88 @@ Debian packaging for **Stremio** client and engine variants that aren't (yet, or
 
 ---
 
-## Important: Debian now ships its own `stremio` (2026-09-24)
+## Stremio is now part of Debian
 
-Debian unstable accepted `stremio` 1.2.0+ds-1 into **main** &mdash; the GTK4/libadwaita/WebKitGTK6
-rewrite ([ITP #943703](https://bugs.debian.org/943703)), installable directly from the normal
-Debian archive, no third-party repo needed. **If you don't have a specific reason to want one of
-the alternatives below, just `apt install stremio` from Debian and skip this repository.**
-
-This repo now exists only for what Debian doesn't ship:
+Debian's own `stremio` (the GTK4/libadwaita/WebKitGTK6 client) was
+[accepted into Debian unstable](https://tracker.debian.org/pkg/stremio) on 2026-09-24.
+**It is the recommended client.** The Qt5 and CEF clients this repository used to ship are kept
+here, renamed `stremio-qt5` and `stremio-cef`, **for archival purposes only**: use one of them only
+if you find it performs better on your system than Debian's official `stremio`.
 
 | Client | Status | Notes |
 |--------|--------|-------|
-| **stremio-cef** (GTK4/CEF, was stremio-gtk) | Active development | For hardware/setups where the CEF renderer works better than WebKitGTK6 (Debian sid only) |
-| **stremio-qt5** (Qt5, was stremio) | Legacy | For users who prefer/need the Qt5 build; renamed to stop colliding with Debian's own `stremio` |
-| **stremio-qt6** | Experimental | Work in progress, not recommended yet |
-
-Two **empty transitional packages** (`stremio` &rarr; `stremio-qt5`, `stremio-gtk` &rarr;
-`stremio-cef`) ship so existing users of this repo migrate automatically with
-`apt full-upgrade` &mdash; plain `apt upgrade` will *not* do it, since apt won't swap package names
-on its own. See the [FAQ on debian.vejeta.com](https://debian.vejeta.com/#faq) for the exact
-commands.
-
-**Recommended:** pin this repository below Debian's own archive, so Debian wins by default for
-anything that exists in both places (`/etc/apt/preferences.d/debian-vejeta-com.pref`):
-```
-Package: *
-Pin: origin debian.vejeta.com
-Pin-Priority: 100
-```
-
-**stremio-server is deprecated.** Debian's own `stremio-server-installer` (contrib) now covers the
-same job &mdash; downloading the non-redistributable `server.js`. It's unstable-only for now, so we
-keep publishing our `stremio-server` for trixie/bookworm until Debian's version reaches those
-suites too.
+| **stremio** (Debian) | Official | From Debian's own archive (unstable), not from this repository |
+| **stremio-cef** (GTK4/CEF, was stremio-gtk) | Archival | Use only if it performs better for you than Debian's `stremio` (Debian sid only) |
+| **stremio-qt5** (Qt5, was stremio) | Archival | Use only if it performs better for you than Debian's `stremio` |
+| **stremio-qt6** | Experimental | Work in progress, not recommended |
 
 ---
 
-## Quick Installation
+## Option A: Debian's official `stremio` (recommended)
 
-### For Debian sid (stremio-cef, CEF renderer)
+On **Debian unstable (sid)** with the `contrib` component enabled (for `stremio-server-installer`,
+which sets up the streaming server). This repository is not needed:
 
 ```bash
-# Add GPG key
-wget -qO - https://debian.vejeta.com/key.gpg | sudo gpg --dearmor -o /usr/share/keyrings/stremio-debian.gpg
-
-# Add repository
-echo "deb [signed-by=/usr/share/keyrings/stremio-debian.gpg] https://debian.vejeta.com sid main non-free" | sudo tee /etc/apt/sources.list.d/stremio.list
-
-# Install stremio-cef (GTK4/CEF client)
 sudo apt update
-sudo apt install stremio-cef
+sudo apt install stremio stremio-server-installer
 ```
 
-### For any suite (stremio-qt5, legacy Qt5 client)
+On trixie, bookworm or Ubuntu, Debian's `stremio` is not in your release yet: wait for it, or use
+option B in the meantime (don't mix unstable packages into a stable system).
+
+### Already using this repository?
+
+1. **Upgrade** (any release). Moves `stremio` to `stremio-qt5` and `stremio-gtk` to `stremio-cef`;
+   the old names stay as empty transitional packages. It has to be `full-upgrade` (plain `upgrade`
+   keeps them back):
+   ```bash
+   sudo apt update && sudo apt full-upgrade
+   ```
+2. **Switch to Debian's `stremio`** (sid). Pin this repository first (see option B, step 3):
+   without the pin, the next `full-upgrade` takes you back to this repository's transitional
+   `stremio`, whose version number is higher. apt asks you to confirm a downgrade (from the 4.4.181
+   transitional package to Debian's 1.2.0), which is expected:
+   ```bash
+   sudo apt update
+   sudo apt install stremio/unstable
+   sudo apt-mark manual stremio
+   ```
+3. **Keep or drop the archived clients.** To keep one, mark it manually installed *before*
+   cleaning up, or `autoremove` may take it:
+   ```bash
+   sudo apt-mark manual stremio-qt5    # and/or stremio-cef
+   sudo apt autoremove
+   ```
+   To drop them: `sudo apt remove stremio-qt5 stremio-cef && sudo apt autoremove`.
+
+More detail, including how to leave this repository entirely, on
+[debian.vejeta.com](https://debian.vejeta.com/#migrate).
+
+**stremio-server is deprecated.** Debian's `stremio-server-installer` (contrib) does the same job.
+It is unstable-only for now, so this repository keeps publishing `stremio-server` for
+trixie/bookworm until Debian's version reaches those releases.
+
+---
+
+## Option B: this repository (archived clients)
+
+Only if `stremio-qt5` or `stremio-cef` performs better on your system than Debian's `stremio`.
 
 ```bash
-# Add GPG key
+# 1. Add the GPG key
 wget -qO - https://debian.vejeta.com/key.gpg | sudo gpg --dearmor -o /usr/share/keyrings/stremio-debian.gpg
 
-# Add repository (choose your distribution)
-# For Debian testing (rolling):
-echo "deb [signed-by=/usr/share/keyrings/stremio-debian.gpg] https://debian.vejeta.com testing main non-free" | sudo tee /etc/apt/sources.list.d/stremio.list
+# 2. Add the repository (choose your distribution: sid, testing, trixie, bookworm, noble)
+echo "deb [signed-by=/usr/share/keyrings/stremio-debian.gpg] https://debian.vejeta.com sid main non-free" | sudo tee /etc/apt/sources.list.d/stremio.list
 
-# OR for Debian 13 (trixie):
-echo "deb [signed-by=/usr/share/keyrings/stremio-debian.gpg] https://debian.vejeta.com trixie main non-free" | sudo tee /etc/apt/sources.list.d/stremio.list
+# 3. Pin it below Debian, so Debian's own packages always win where both provide one
+printf 'Package: *\nPin: origin debian.vejeta.com\nPin-Priority: 100\n' | sudo tee /etc/apt/preferences.d/debian-vejeta-com.pref
 
-# OR for Debian 12 (bookworm):
-echo "deb [signed-by=/usr/share/keyrings/stremio-debian.gpg] https://debian.vejeta.com bookworm main non-free" | sudo tee /etc/apt/sources.list.d/stremio.list
-
-# Install Qt5 client
+# 4. Install
 sudo apt update
-sudo apt install stremio-qt5
+sudo apt install stremio-qt5    # Qt5 client, any release
+sudo apt install stremio-cef    # CEF client, Debian sid only
 ```
 
 **Supported Distributions:**
@@ -116,11 +127,9 @@ Renamed from `stremio-gtk` on 2026-09-24 once Debian's own `stremio` became a GT
 making the old "-gtk" suffix meaningless (the real difference is the renderer: CEF here, WebKitGTK6
 in Debian's own package).
 
-**Why stremio-cef?**
-- GTK4/Adwaita interface following GNOME HIG
-- Uses CEF (Chromium Embedded Framework)
-- Native Wayland support
-- Kept for hardware/setups where CEF renders better than WebKitGTK6
+**Status: archival.** Debian's own `stremio` is the recommended client. Use stremio-cef only if
+you find it performs better on your system than Debian's `stremio` (for example, where the CEF
+renderer runs better on your hardware than WebKitGTK6).
 
 **Dependencies** (installed automatically):
 - `libcef<N>` - CEF runtime library
@@ -170,19 +179,20 @@ These are build and runtime dependencies for stremio-cef. They are built from th
 
 **Note**: This is an experimental Qt6 port intended as a workaround for users who prefer KDE/Plasma or Qt-based desktop environments and want a non-deprecated Qt client. Not recommended yet &mdash; prefer Debian's own `stremio`, or `stremio-cef`/`stremio-qt5` from this repo. On sid and Ubuntu, the Qt6 version supersedes stremio-qt5 due to its higher version number.
 
-### stremio-qt5 (main) - Legacy Qt5 Client
+### stremio-qt5 (main) - Qt5 Client (archival)
 
 | Property | Value |
 |----------|-------|
 | **License** | GPL-3.0-or-later |
 | **Architecture** | amd64, arm64 |
 | **Distribution** | All (bookworm, trixie, testing, sid) |
-| **Status** | **Legacy** |
+| **Status** | **Archival** |
 | **Upstream** | [github.com/Stremio/stremio-shell](https://github.com/Stremio/stremio-shell) |
 | **Packaging** | [salsa.debian.org/mendezr/stremio-qt5](https://salsa.debian.org/mendezr/stremio-qt5) |
 
 Renamed from `stremio` on 2026-09-24, since Debian's own `stremio` package now uses that name for
-the WebKitGTK6 rewrite. Kept for users who specifically want or need the Qt5 build.
+the WebKitGTK6 rewrite. Kept for archival purposes: use it only if you find it performs better on
+your system than Debian's official `stremio`.
 
 ### stremio-server (non-free) - **Deprecated**
 
@@ -234,14 +244,13 @@ This repository uses **separate releases** for different package groups:
 GTK4/libadwaita/WebKitGTK6 rewrite, version 1.2.0+ds-1. Installed directly from Debian's own
 archive; this repository does not build or publish it.
 
-### stremio-cef - **Active ITP**
+### stremio-cef - **Not headed for Debian (archival)**
 
-**ITP**: [Bug #1119815](https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=1119815) (originally filed for stremio-gtk)
+**ITP**: [Bug #1119815](https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=1119815) (filed for stremio-gtk), closed
 
-- **Target**: Debian `main` archive
-- **License**: GPL-3.0-only (DFSG-compliant)
-- **Status**: Packaging complete, seeking sponsorship
-- **Dependencies**: Requires CEF packages
+Upstream replaced CEF with WebKitGTK 6, and that version is what entered Debian as `stremio`.
+stremio-cef (upstream's last CEF release, 1.0.0-beta.13) stays in this repository for archival
+purposes only.
 
 ### Chromium Embedded Framework (CEF) - **Active ITP**
 
@@ -311,9 +320,9 @@ Debian archive.
 
 | Component | License | Distribution | Architecture | Status |
 |-----------|---------|--------------|--------------|--------|
-| stremio-cef | GPL-3.0-only | sid | amd64 | Active |
+| stremio-cef | GPL-3.0-only | sid | amd64 | Archival |
 | stremio-qt6 | GPL-3.0+ | trixie, sid, plucky | amd64, arm64 | Experimental |
-| stremio-qt5 | GPL-3.0+ | all | amd64, arm64 | Legacy |
+| stremio-qt5 | GPL-3.0+ | all | amd64, arm64 | Archival |
 | stremio-server | Proprietary | trixie, bookworm | all | Deprecated |
 | libcef\<N\> | BSD-3-Clause | sid | amd64 | Active |
 | libcef-common | BSD-3-Clause | sid | all | Active |
