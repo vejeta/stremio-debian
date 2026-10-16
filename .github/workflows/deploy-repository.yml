@@ -629,6 +629,7 @@ jobs:
                   <tr><td>Key UID</td><td>Stremio Debian Repository &lt;vejeta@gmail.com&gt; (created 2025-10-29)</td></tr>
                   <tr><td>Key type</td><td>RSA 4096-bit</td></tr>
                   <tr><td>Maintainer</td><td>Juan Manuel M&eacute;ndez Rey &lt;juan.mendezr@proton.me&gt;</td></tr>
+                  <tr><td>Keyserver</td><td><a href="https://keys.openpgp.org/search?q=15513D6495D515D7BB8CA3416F5607866A393E01">keys.openpgp.org</a></td></tr>
                   <tr><td>Independent copy</td><td>The same key is listed in Debian&rsquo;s <a href="https://salsa.debian.org/extrepo-team/extrepo-data/-/blob/master/repos/debian/stremio.yaml">extrepo-data</a></td></tr>
                   <tr><td>Build pipeline</td><td><a href="https://github.com/vejeta/stremio-debian/actions">GitHub Actions</a> (public and auditable)</td></tr>
               </table>
