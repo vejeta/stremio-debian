@@ -630,9 +630,15 @@ jobs:
                   <tr><td>Key type</td><td>RSA 4096-bit</td></tr>
                   <tr><td>Maintainer</td><td>Juan Manuel M&eacute;ndez Rey &lt;juan.mendezr@proton.me&gt;</td></tr>
                   <tr><td>Keyserver</td><td><a href="https://keys.openpgp.org/search?q=15513D6495D515D7BB8CA3416F5607866A393E01">keys.openpgp.org</a></td></tr>
+                  <tr><td>Certified by</td><td>Juan Manuel M&eacute;ndez Rey, maintainer key <code>2A84 0ED0 0DE6 69F4 219B  8B33 02A7 9E3B 8215 1695</code> (<a href="https://keyserver.ubuntu.com/pks/lookup?op=vindex&amp;search=0x15513D6495D515D7BB8CA3416F5607866A393E01">signature on keyserver.ubuntu.com</a>)</td></tr>
                   <tr><td>Independent copy</td><td>The same key is listed in Debian&rsquo;s <a href="https://salsa.debian.org/extrepo-team/extrepo-data/-/blob/master/repos/debian/stremio.yaml">extrepo-data</a></td></tr>
                   <tr><td>Build pipeline</td><td><a href="https://github.com/vejeta/stremio-debian/actions">GitHub Actions</a> (public and auditable)</td></tr>
               </table>
+
+              <p>Check the maintainer certification (keys.openpgp.org does not publish third-party signatures, keyserver.ubuntu.com does):</p>
+              <pre>
+              gpg --keyserver hkps://keyserver.ubuntu.com --recv-keys 15513D6495D515D7BB8CA3416F5607866A393E01 2A840ED00DE669F4219B8B3302A79E3B82151695
+              gpg --check-sigs 15513D6495D515D7BB8CA3416F5607866A393E01</pre>
 
               <p>Verify the installed key:</p>
               <pre>gpg --show-keys /etc/apt/keyrings/stremio-debian.gpg 2&gt;/dev/null | grep -q "15513D6495D515D7BB8CA3416F5607866A393E01" &amp;&amp; echo "Key OK" || echo "Key MISMATCH"</pre>
